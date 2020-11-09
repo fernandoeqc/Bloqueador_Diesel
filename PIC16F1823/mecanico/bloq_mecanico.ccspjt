@@ -1,0 +1,23 @@
+[PROJECT]
+Target=bloq_mecanico.hex
+Processor_Text=PIC16F1823
+CCSVerions=5.015
+Compiler=PCM
+CCSVersion=5.015
+[Target Data]
+FileList=bloq_mecanico.c
+[Directories]
+Include=C:\Program Files (x86)\PICC\Devices\;C:\Program Files (x86)\PICC\Drivers\;C:\Users\fernandoLab\Documents\GitHub\Rede-CAN-PIC\headers\
+[C:\Users\fernandoLab\Documents\GitHub\Bloqueador_Diesel\PIC16F1823\mecanico\bloq_mecanico]
+Type=4
+[mru-list]
+1=bloq_mecanico.c
+[Opened Files]
+1=bloq_mecanico.c
+2=bloq_mecanico.h
+3=
+[bloq_mecanico.c]
+Type=4
+[Units]
+Count=1
+1=bloq_mecanico (main)

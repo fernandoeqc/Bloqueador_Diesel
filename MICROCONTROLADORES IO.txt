@@ -1,0 +1,73 @@
+-BLOQUEADOR
+	- 5: MCP2515
+		IRQ - Interrucao do MCP2515 - INT
+		CS - Chip Select - I/O
+		SI - Mosi
+		SO - Miso
+		SCK - Clock	
+	- 1: ANTI-JAMMER (AJ)
+		AN3 AD Channel
+	- 1: RELÉ
+		I/O
+	- 2: LEDS
+		I/O
+	- 9
+		  __________
+	+5V	-| VCC	VSS	|- GND
+		-| RA5	RA0 |- PGD
+	AJ	-| RA4	RA1 |- PGC
+		-| RA3	RA2 |- IRQ
+	LED1-| RC5	RC0 |- SCK
+	LED2-| RC4	RC1 |- SI
+	CS	-| RC3	RC2 |- SO
+		  ----------
+	
+	
+-TRANSMISSOR
+	- 5: MCP2515
+		IRQ - Interrucao do MCP2515 - INT
+		CS - Chip Select - I/O
+		SI - Mosi
+		SO - Miso
+		SCK - Clock	
+	- 2: LEDS
+		I/O
+	- 2: RASTREADOR (RI, RO)
+		I/O
+	- 9
+		  __________
+	+5V	-| VCC	VSS	|- GND
+		-| RA5	RA0 |- PGD
+	RI	-| RA4	RA1 |- PGC
+	RO	-| RA3	RA2 |- IRQ
+	LED1-| RC5	RC0 |- SCK
+	LED2-| RC4	RC1 |- SI
+	CS	-| RC3	RC2 |- SO
+	      ----------
+	
+	
+-MECÂNICO
+	- 5: MCP2515
+		IRQ - Interrucao do MCP2515 - INT
+		CS - Chip Select - I/O
+		SI - Mosi
+		SO - Miso
+		SCK - Clock
+	- 1: SENSOR TENSÃO BATERIA (STB)
+		AN3 AD Channel
+	- 1: SENSOR TENSÃO CARRO	(STC)
+		I/O
+	- 1: SENSOR FLUXO	(SF)
+		PINO PWM 1
+	- 2: LEDS
+		I/O
+	- 10
+		  __________
+	+5V	-| VCC	VSS	|- GND
+	SF	-| RA5	RA0 |- PGD
+		-| RA4	RA1 |- PGC
+		-| RA3	RA2 |- IRQ
+	LED1-| RC5	RC0 |- SCK
+	LED2-| RC4	RC1 |- SI
+	CS	-| RC3	RC2 |- SO
+	      ----------

@@ -1,0 +1,13 @@
+MCP2515:
+resultados de testes na protoboard
+
+TRATAMENTOS DE ERRO:
+    Transmissor:
+    quando equipamento receptor é retirado, transmissor pode receber dois bytes
+        de erro no registrador TXBnCTRL:
+        
+        - 0x50, caso o MCP2515 do transmissor esteja com o jumper de 120ohm.
+                mcp indica que ha uma falha na rede
+        
+        - 0x60, caso o MCP2515 do transmissor NÃO esteja com o jumper de 120 ohm. 
+                mcp acusa que não houve receptor da mensagem ('Message Lost Arbitration bit')

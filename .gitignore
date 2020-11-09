@@ -1,0 +1,25 @@
+#Dir
+/__history
+.vscode/
+
+
+# Outputs
+*.err
+*.esym
+*.lst
+*.STA
+*.sym
+*.tre
+*.xsym
+*.chm
+*.cod
+*.lnk
+
+
+#history
+*.~*~
+
+
+#proteus
+*.DSN
+*.PWI

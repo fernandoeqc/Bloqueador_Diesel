@@ -1,0 +1,22 @@
+[PROJECT]
+Target=placa_testes.hex
+Processor_Text=PIC12F1822
+CCSVerions=5.015
+Compiler=PCM
+CCSVersion=5.015
+[Target Data]
+FileList=placa_testes.c
+[Directories]
+Include=C:\Program Files (x86)\PICC\Devices\;C:\Program Files (x86)\PICC\Drivers\;C:\Users\fernandoLab\Documents\GitHub\Bloqueador_Diesel\headers\
+[C:\Users\fernandoLab\Documents\GitHub\Bloqueador_Diesel\PIC12f1822\placa_testes]
+Type=4
+[mru-list]
+1=placa_testes.c
+[Opened Files]
+1=placa_testes.c
+2=
+[placa_testes.c]
+Type=4
+[Units]
+Count=1
+1=placa_testes (main)

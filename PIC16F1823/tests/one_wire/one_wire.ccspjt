@@ -1,0 +1,23 @@
+[PROJECT]
+Target=one_wire.hex
+Processor_Text=PIC16F1823
+CCSVerions=5.015
+Compiler=PCM
+CCSVersion=5.015
+[Target Data]
+FileList=one_wire.c
+[Directories]
+Include=C:\Program Files (x86)\PICC\Devices\;C:\Program Files (x86)\PICC\Drivers\;C:\Users\fernandoLab\Documents\GitHub\Bloqueador_Diesel\headers\
+[C:\Users\fernandoLab\Documents\GitHub\Bloqueador_Diesel\PIC16F1823\teste\one_wire\one_wire]
+Type=4
+[mru-list]
+1=one_wire.c
+[Opened Files]
+1=one_wire.c
+2=one_wire.h
+3=
+[one_wire.c]
+Type=4
+[Units]
+Count=1
+1=one_wire (main)
