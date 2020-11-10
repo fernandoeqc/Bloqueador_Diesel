@@ -1,5 +1,5 @@
 #include <16F1823.h>
-#device ADC=16
+#device ADC=8
 
 #FUSES NOWDT                    //No Watch Dog Timer
 #FUSES NOMCLR                   //Master Clear pin used for I/O
