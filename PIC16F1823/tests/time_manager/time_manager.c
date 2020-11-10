@@ -1,9 +1,12 @@
+#define TEMPOCICLOLEDS 30
+#define DEBUG
+
 #include <time_manager.h>
+#include <ep_debug.h>
 #include <stddef.h>
 #include <functions.h>
 #include <tasks.h>
 
-#define TEMPOCICLOLEDS 30
 
 
 
@@ -46,55 +49,57 @@ void gerenciaTempo(struct tempo *tmp) {
 }
 */
 
+void waitEndMotor (struct task *tk) {
+   static int8 count_wait_init = 0;
+
+   if(!FIM_CURSO_IN) {
+      
+   }
+}
 
 
-
-void main()
-{
-   //output_a(0b000000);
-   //output_c(0b000000);
-
-   //controle pino LED1 (RA4)
-/*    struct latx LATA4;
-   LATA4.status = 0x05;
-   LATA4.statusBuf = 0x00;
-   LATA4.pausa = 0x0A;
-   LATA4.pausaBuf = 0x00;
-   LATA4.porta = 0x10C;
-   LATA4.pino = 0x04; */
+int main(void) {
 
    struct task contaBloq;
-   contaBloq.seg = 0x0;
-   contaBloq.conta_seg = 0x00;
-   contaBloq.comando = 'O';
-   contaBloq.flag = NULL;
-   contaBloq.ativo = 0x01;
+   contaBloq.sec = 0x06;
+   contaBloq.count_sec = 0x00;
+   contaBloq.command = 'W';
+   contaBloq.flag = FALSE;
+   contaBloq.active = TRUE;
    contaBloq.func = ativaMotor;
    
    struct task contaBat;
-   contaBat.seg = 0x00;
-   contaBat.conta_seg = 0x00;
-   contaBat.comando = 'O';
-   contaBat.flag = NULL;
-   contaBat.ativo = 0x01;
+   contaBat.sec = 0x03;
+   contaBat.count_sec = 0x00;
+   contaBat.command = 'O';
+   contaBat.flag = FALSE;
+   contaBat.active = TRUE;
    contaBat.func = ativaBat;
+   
+   struct task waitMotor;
+   contaBat.sec = 0x05;
+   contaBat.count_sec = 0x00;
+   contaBat.command = 'O';
+   contaBat.flag = FALSE;
+   contaBat.active = TRUE;
+   contaBat.func = waitEndMotor;
+
 
    initTasks ();
-   //taskList[0] = &contaBloq; 
    
    addTask (&contaBat);
    addTask (&contaBloq);
 
+  
    disable_interrupts(GLOBAL);                 // habilitar interr global
-   //enable_interrupts(INT_EXT_H2L);             // interrupcao CAN
    setup_timer_1(T1_INTERNAL | T1_DIV_BY_8);   // setar timer1 para interno
    enable_interrupts(INT_TIMER1);              // habilita Timer1 
    set_timer1(0);                              // limpar flag TMR1H & TMR1L 
    counter=int_per_sec;
    enable_interrupts(GLOBAL);                  // habilitar interr global
 
-   //LATA.statusBuf = 4;
-   output_low(LED1);
+   output_low(LED2);
+   output_low(LED2);
    
    while(TRUE)
    {      
@@ -115,7 +120,7 @@ void main()
       {
          um_periodo = 0;
 
-         //passagem LATA.4 como parametro
+         //=passagem LATA.4 como parametro
          //piscaLedStatus(&LATA4);
          
          contaPeriodo--;
@@ -129,10 +134,9 @@ void main()
       if(um_segundo) {
          um_segundo = 0b0;
 
-         timeManager(&contaBloq, ativaMotor);
-         //runTasks();
-         
-
+         //timeManager(&contaBloq, ativaMotor);
+         runTasks();
+                 
          //piscaLed(1,50,LED2);
          
          //can_putd(0x71F,dadosEnv,2,0,0,0);

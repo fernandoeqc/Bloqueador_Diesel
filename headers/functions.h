@@ -13,8 +13,8 @@
     unsigned int8 pausaBuf;
     unsigned int16 porta;
     unsigned int8 pino;
-
     };
+
     volatile unsigned int8 contaPeriodo = TEMPOCICLOLEDS;
     void piscaLedStatus(struct latx *lat){
         struct latx latCopy;
@@ -22,15 +22,13 @@
 
         //responsavel por desligar o led no segundo periodo
         //se led esta ligado, desliga
-        if(bit_test(*latCopy.porta,latCopy.pino))
-        {
+        if(bit_test(*latCopy.porta,latCopy.pino)) {
             bit_clear(*latCopy.porta,latCopy.pino);
             return;
         }
 
         //se tempo de pausa acabou
-        if (latCopy.statusBuf == 0)
-        {
+        if (latCopy.statusBuf == 0) {
             //esta no meio do ciclo, retorna. (aguarda ciclo acabar)
             if(contaPeriodo != TEMPOCICLOLEDS)
             {
@@ -44,8 +42,7 @@
         }
 
         //acende led
-        else
-        {
+        else {
             bit_set(*latCopy.porta, latCopy.pino);
             latCopy.statusBuf--;
         }
@@ -55,38 +52,41 @@
 #endif
 
 #ifdef EEPROM_F
-    void eeprom_grava(unsigned int address, unsigned int tamanho, unsigned int32 hexa)
-    {
+    void eeprom_grava(unsigned int address, unsigned int tamanho, unsigned int32 hexa) {
         unsigned int i = 0, bytes[4];               
         
         //separa bytes
-        for (i = 0; i < tamanho; i++)
-        {
+        for (i = 0; i < tamanho; i++) {
             bytes[i] = hexa;
             hexa >>= 8;
         }
             
         //imprime na ordem inversa
-        while(tamanho) 
-        {
+        while(tamanho) {
             write_eeprom(address++,bytes[--tamanho]);
             delay_ms(1);
         }
     }
 
-    unsigned int32 eeprom_le(unsigned int address, unsigned int tamanho)
-    {
+    unsigned int32 eeprom_le(unsigned int address, unsigned int tamanho) {
         unsigned int i = 0;
         unsigned int32 bytes = 0;
         
-        for(i = tamanho; i > 0; i--)
-        {
+        for(i = tamanho; i > 0; i--) {
             bytes <<= 8;
             bytes |= read_eeprom(address++); 
             delay_ms(1);
         }
         return bytes;
     }
+
+    void eeprom_add (int address, int8 hexa) {
+        unsigned int8 old;
+        
+        old = read_eeprom(address);
+        write_eeprom(address, hexa + old);
+    }
+
 #endif
 
 
