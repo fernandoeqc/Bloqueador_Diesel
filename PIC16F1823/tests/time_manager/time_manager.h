@@ -23,7 +23,7 @@
 
 //PORTC
 #define ADC_BAT      4 //PIN_C0
-#define ADC_ALIM     5 //PIN_C1
+#define POWER_IN     PIN_C1
 //#define LED2         PIN_C2
 #define CARGA_BAT    PIN_C3
 #define LED1         PIN_C4

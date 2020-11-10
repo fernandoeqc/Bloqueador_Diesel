@@ -1,4 +1,5 @@
 #define TEMPOCICLOLEDS 30
+#define MAX_UNANSWERED_TIME 10
 #define DEBUG
 
 #include <time_manager.h>
@@ -9,6 +10,7 @@
 
 static unsigned int8 flags_control = 0;
 static unsigned char actual_command = '0';
+static unsigned int8 new_data_time = 0;
 
 /* volatile unsigned int8 contaPeriodo = TEMPOCICLOLEDS;
 void piscaLedStatus(struct latx *lat){
@@ -50,7 +52,10 @@ void gerenciaTempo(struct tempo *tmp) {
 #pragma INT_RDA
 void RDA_isr(void) {  
    actual_command = getch();
+   new_data_time = 0;
+
 }
+
 
 int1 waitEndMotor (struct taskData *tk) {
    struct taskData t_tk;
@@ -72,16 +77,15 @@ int1 waitEndMotor (struct taskData *tk) {
 void checkFlags () {
    unsigned int8 i;
    for (i = 0; i < TASK_LENGHT; i++) {
-      if (taskList[i]->data.flag) {
-         taskList[i]->func_flag (&taskList[i]->data);
-      }
+      /* if (taskList[i]->data.flag) {
+         taskList[i]->func_time (&taskList[i]->data);
+      } */
    }
 }
 
-
 int1 ativaMotor(struct taskData *tk) { 
    struct taskData t_tk;
-   t_tk = *tk;
+   //t_tk = *tk;
 
    t_tk.active = FALSE;
    t_tk.flag = TRUE;
@@ -98,23 +102,23 @@ int1 ativaMotor(struct taskData *tk) {
       t_tk.flag = FALSE;
    }
 
-   *tk = t_tk;
+   //*tk = t_tk;
 }
+
 
 void ativaBat(struct taskData *tk) {
    struct taskData t_tk;
-   t_tk = *tk;
+   //t_tk = *tk;
 
-   output_toggle(PIN_C5);
 
-   *tk = t_tk;
+   //*tk = t_tk;
 }
+
 
 void checkUart(struct taskData *tk) {
    struct taskData t_tk;
    static unsigned char last_command = 0;
-   t_tk = *tk;
-      
+   //t_tk = *tk;
    
    if (last_command != actual_command) {
       last_command = actual_command;
@@ -132,6 +136,40 @@ void checkUart(struct taskData *tk) {
          return;
       }  
    }
+   
+   //*tk = t_tk;
+}
+
+
+void checkPowerIn(struct taskData *tk) {   
+   output_toggle(PIN_C3);
+   if(POWER_IN) {
+      bit_set(flags_control, 1);
+   }
+   else {
+      bit_clear(flags_control, 1);
+   }
+}
+
+
+void checkTimeMessage(struct taskData *tk) {
+   struct taskData t_tk;   
+   t_tk = *tk;
+
+   new_data_time++;
+   if (new_data_time > MAX_UNANSWERED_TIME) {
+      new_data_time = 0;
+      //bit_set (flags_control, 2);
+      output_high(PIN_C5);  
+   }
+
+   if(t_tk.state > new_data_time) {
+      //tempo foi resetado
+      //bit_clear (flags_control, 2);
+      output_low(PIN_C5);
+   }
+   
+   t_tk.state = new_data_time;
 
    *tk = t_tk;
 }
@@ -142,42 +180,76 @@ void stateMotor() {
 }
 
 int main (void) {
+   struct taskFunc teste;
+   teste.data.sec = 0x00;
+   teste.data.count_sec = 0x00;
+   teste.data.command = 'a';
+   teste.data.command = 'f';
+   teste.data.flag = FALSE;
+   teste.data.active = TRUE;
+   teste.func_time = abc;
+ /*
+
    struct taskFunc uart;
    uart.data.sec = 0x00;
    uart.data.count_sec = 0x00;
    uart.data.command = '0';
+   uart.data.command = '0';
    uart.data.flag = FALSE;
    uart.data.active = TRUE;
    uart.func_time = checkUart;
+   
+   struct taskFunc timeReceive;
+   timeReceive.data.sec = 0x00;
+   timeReceive.data.count_sec = 0x00;
+   timeReceive.data.command = '0';
+   timeReceive.data.state = 0;
+   timeReceive.data.flag = FALSE;
+   timeReceive.data.active = TRUE;
+   timeReceive.func_time = checkTimeMessage;
+
 
 
    struct taskFunc contaBloq;
-   contaBloq.data.sec = 0x05;
+   contaBloq.data.sec = 0x00;
    contaBloq.data.count_sec = 0x00;
-   contaBloq.data.command = 'W';
+   contaBloq.data.command = 'D';
+   contaBloq.data.state = 'O';
    contaBloq.data.flag = FALSE;
    contaBloq.data.active = TRUE;
    contaBloq.func_time = ativaMotor;
-   contaBloq.func_flag = waitEndMotor;
+
 
    struct taskFunc contaBat;
-   contaBat.data.sec = 0x02;
+   contaBat.data.sec = 0x00;
    contaBat.data.count_sec = 0x00;
-   contaBat.data.command = 'O';
+   contaBat.data.command = '0';
+   contaBat.data.state = '0';
    contaBat.data.flag = FALSE;
    contaBat.data.active = TRUE;
    contaBat.func_time = ativaBat;
+
+   struct taskFunc powerIn;
+   powerIn.data.sec = 0x00;
+   powerIn.data.count_sec = 0x00;
+   powerIn.data.command = '0';
+   powerIn.data.state = '0';
+   powerIn.data.flag = FALSE;
+   powerIn.data.active = TRUE;
+   powerIn.func_time = checkPowerIn; */
    
-   initTasks ();
+   //initTasks ();
    //addTask (&contaBat);
    //addTask (&contaBloq);
-   addTask (&uart);
+   //addTask (&uart);
+   //addTask (&timeReceive);
+   //addTask (&powerIn);
 
+   addTest (&teste);
   
    //===========REGISTRADORES===================================
    disable_interrupts(GLOBAL);               // habilitar interr global
    enable_interrupts(INT_RDA);               //UART
-   //enable_interrupts(INT_EXT_H2L);         // interrupcao CAN
    setup_timer_1(T1_INTERNAL | T1_DIV_BY_8); // setar timer1 para interno
    enable_interrupts(INT_TIMER1);            // habilita Timer1
    set_timer1(0);                            // limpar flag TMR1H & TMR1L
@@ -196,24 +268,9 @@ int main (void) {
          flag_interr = 0b0;
       }
 
-      if(contaBloq.flag)
-      {
-
-
-      }
-
        if(um_periodo)
       {
          um_periodo = 0;
-
-         //=passagem LATA.4 como parametro
-         //piscaLedStatus(&LATA4);
-         
-         contaPeriodo--;
-         if(contaPeriodo == 0)
-         {
-            contaPeriodo = TEMPOCICLOLEDS;
-         }
       }   
       */
 
@@ -221,7 +278,8 @@ int main (void) {
          um_segundo = 0b0;
 
          stateMotor();
-         runTasks(); 
+         //runTasks(); 
+         runTest(); 
          //piscaLed(1,50,LED2);
         
 
