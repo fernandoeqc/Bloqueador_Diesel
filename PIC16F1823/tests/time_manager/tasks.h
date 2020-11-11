@@ -1,8 +1,6 @@
 #define TASK_LENGHT 10
 
 struct taskData {
-   unsigned int8 sec; 
-   unsigned int8 count_sec;
    unsigned int8 command;
    unsigned int8 state;
    unsigned int1 flag:1;
@@ -13,14 +11,14 @@ typedef void (*function)(struct taskData *arg);
 typedef void (*functionTest)(void);
 
 struct taskFunc {
-
+   unsigned int8 sec; 
+   unsigned int8 count_sec;
    struct taskData data;
    function func_time;
 };
 
 
 struct taskFunc *taskList[TASK_LENGHT];
-struct taskData *taskTest[TASK_LENGHT];
 /* 
 void timeManager (struct taskFunc *tmp, function func_time) {
    int x;
@@ -48,14 +46,16 @@ void initTasks () {
 }
 
 void addTask (struct taskFunc *tk) {
-   unsigned int8 i = 0;
+   static unsigned int8 i = 0;
+   struct taskFunc t_tk;
+   int test = 0;
 
-   for (i = 0; i < TASK_LENGHT; i++) {
-      if (taskList[i] == NULL) {
-         taskList[i] = tk;
-         return;
-      }
-   }
+   t_tk = *tk;
+   test = tk;
+   test = &tk;
+
+   taskList[i] = &t_tk;
+   i++;
 }
 
 
@@ -64,12 +64,12 @@ static void runTk (struct taskFunc *tk) {
    t_tk = *tk;
    function func = t_tk.func_time; 
 
-   if (t_tk.data.count_sec == t_tk.data.sec) {
-      t_tk.data.count_sec = 0;
-      func (&(t_tk.data));
+   if (t_tk.count_sec == t_tk.sec) {
+      t_tk.count_sec = 0;
+      func (&(t_tk));
    }
    else {
-      t_tk.data.count_sec++;
+      t_tk.count_sec++;
    }
    
    *tk = t_tk;
