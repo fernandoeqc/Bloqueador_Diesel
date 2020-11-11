@@ -9,7 +9,7 @@
 #include <tasks.h>
 
 static unsigned int8 flags_control = 0;
-static unsigned char actual_command = '0';
+
 static unsigned int8 new_data_time = 0;
 
 /* volatile unsigned int8 contaPeriodo = TEMPOCICLOLEDS;
@@ -48,13 +48,14 @@ void gerenciaTempo(struct tempo *tmp) {
 
    *tmp = b_tmp;
 }
-*/
+
 #pragma INT_RDA
 void RDA_isr(void) {  
    actual_command = getch();
    new_data_time = 0;
 
 }
+*/
 
 
 int1 waitEndMotor (struct taskData *tk) {
@@ -113,31 +114,41 @@ void ativaBat(struct taskData *tk) {
 
    //*tk = t_tk;
 }
+char getCommand() {
+   actual_command = getch();
 
+   if
+}
 
 void checkUart(struct taskData *tk) {
    struct taskData t_tk;
+   static unsigned char actual_command = '0';
    static unsigned char last_command = 0;
-   //t_tk = *tk;
    
+   t_tk = *tk;
+
    if (last_command != actual_command) {
       last_command = actual_command;
-      if (actual_command == 'B') {
+      actual_command = '0';
+
+      if (last_command == 'B') {
          bit_set (flags_control, 2);
-         t_tk.command == actual_command;
+         t_tk.command == last_command;
       }
       
-      else if (actual_command == 'D') {
+      else if (last_command == 'D') {
          bit_clear (flags_control, 2);
-         t_tk.command == actual_command;
+         t_tk.command == last_command;
       }
       
       else {
-         return;
+         return '?';
       }  
    }
    
-   //*tk = t_tk;
+   *tk = t_tk;
+
+   return actual_command
 }
 
 
@@ -156,9 +167,12 @@ void checkTimeMessage(struct taskData *tk) {
    struct taskData t_tk;   
    t_tk = *tk;
 
-   new_data_time++;
+   
    if (new_data_time > MAX_UNANSWERED_TIME) {
-      new_data_time = 0;
+      //para de contar quando completa um byte
+      if (new_data_time != 0xff) {
+         new_data_time++;
+      }
       //bit_set (flags_control, 2);
       output_high(PIN_C5);  
    }
@@ -180,15 +194,6 @@ void stateMotor() {
 }
 
 int main (void) {
-   struct taskFunc teste;
-   teste.data.sec = 0x00;
-   teste.data.count_sec = 0x00;
-   teste.data.command = 'a';
-   teste.data.command = 'f';
-   teste.data.flag = FALSE;
-   teste.data.active = TRUE;
-   teste.func_time = abc;
- /*
 
    struct taskFunc uart;
    uart.data.sec = 0x00;
@@ -209,6 +214,7 @@ int main (void) {
    timeReceive.func_time = checkTimeMessage;
 
 
+ /*
 
    struct taskFunc contaBloq;
    contaBloq.data.sec = 0x00;
@@ -242,10 +248,10 @@ int main (void) {
    //addTask (&contaBat);
    //addTask (&contaBloq);
    //addTask (&uart);
-   //addTask (&timeReceive);
+   addTask (&timeReceive);
    //addTask (&powerIn);
 
-   addTest (&teste);
+
   
    //===========REGISTRADORES===================================
    disable_interrupts(GLOBAL);               // habilitar interr global
@@ -261,8 +267,8 @@ int main (void) {
    output_low (LED2);
    
    while (TRUE) {      
-      
-      
+      runTasks(); 
+     
       /* if(flag_interr)
       {          
          flag_interr = 0b0;
@@ -276,10 +282,10 @@ int main (void) {
 
       if(um_segundo) {
          um_segundo = 0b0;
-
          stateMotor();
-         //runTasks(); 
-         runTest(); 
+         
+ 
+         
          //piscaLed(1,50,LED2);
         
 

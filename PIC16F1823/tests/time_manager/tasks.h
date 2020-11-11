@@ -58,18 +58,8 @@ void addTask (struct taskFunc *tk) {
    }
 }
 
-void addTest(struct taskFunc *tk) {
-   unsigned int8 i = 0;
 
-   for (i = 0; i < TASK_LENGHT; i++) {
-      if (taskTest[i] == NULL) {
-         taskTest[i] = tk;
-         return;
-      }
-   }
-}
-
-/* static void runTk (struct taskFunc *tk) {
+static void runTk (struct taskFunc *tk) {
    struct taskFunc t_tk;
    t_tk = *tk;
    function func = t_tk.func_time; 
@@ -83,24 +73,9 @@ void addTest(struct taskFunc *tk) {
    }
    
    *tk = t_tk;
-} */
-
-static void runTs (struct taskFunc *tk) {
-   struct taskFunc t_tk;
-   t_tk = *tk;  
-   function func = t_tk.func_time; 
-
-   if (t_tk.data.count_sec == t_tk.data.sec) {
-      t_tk.data.count_sec = 0;
-      func (&(t_tk.data));
-   }
-   else {
-      t_tk.data.count_sec++;
-   }
-   *tk = t_tk;
 }
 
-/* void runTasks () {
+void runTasks () {
    unsigned int8 i = 0;
 
    for (i = 0; i < TASK_LENGHT; i++) {
@@ -114,45 +89,4 @@ static void runTs (struct taskFunc *tk) {
 
       runTk (taskList[i]);
    }
-} */
-
-void runTest () {
-   unsigned int8 i = 0;
-
-   for (i = 0; i < TASK_LENGHT; i++) {
-      if (taskTest[i] == NULL) {
-         return;
-      }
-       
-      if (taskTest[i]->active == FALSE) {
-         continue;
-      }
-
-      runTs (taskTest[i]);
-   }
-}
-
-void abc (struct taskData *tk) {
-   struct taskData t_tk;   
-   struct taskData oso; 
-   oso.active = 1;
-
-   oso = *tk;
-   int time = 0;
-   
-   if (time > MAX_UNANSWERED_TIME) {
-      
-      //bit_set (flags_control, 2);
-      output_high(PIN_C5);  
-   }
-
-   if(t_tk.state > time) {
-      //tempo foi resetado
-      //bit_clear (flags_control, 2);
-      output_low(PIN_C5);
-   }
-   
-   t_tk.state = time;
-
-   *tk = t_tk;
 }
