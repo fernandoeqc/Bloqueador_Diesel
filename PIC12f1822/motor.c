@@ -1,13 +1,28 @@
 #include <motor.h>
 #define TIMER0_F
 
+#define FIM_CURSO_1 PIN_A5
+#define FIM_CURSO_2 PIN_A4
+#define MOTOR2      PIN_A3
+#define MOTOR1      PIN_A2
+#define LED_STATUS  PIN_A1                 
+#define LED         PIN_A0
+
 #include <functions.h>
 
 void fim_curso(int1 status)
 {
    unsigned int sec_t = sec, count = 0;
 
-   output_high(PIN_A5);
+   
+   if (status) {
+      output_low(FIM_CURSO_2);
+      output_high(FIM_CURSO_1);
+   }
+   else {
+      output_low(FIM_CURSO_1);
+      output_high(FIM_CURSO_2);
+   }
 
    while (count < 5)
    {
@@ -18,7 +33,11 @@ void fim_curso(int1 status)
       }
    }
 
-   output_low(PIN_A5);
+   output_low(FIM_CURSO_2);
+   output_low(FIM_CURSO_1);
+
+   output_low(LED);
+   output_low(LED_STATUS);
 }
 
 void main()
@@ -36,21 +55,20 @@ void main()
    enable_interrupts(GLOBAL); // habilitar interr global
    //----------------------------------------------------------
 
-   output_low(PIN_A5);
-   output_low(PIN_A4);
+   output_low(FIM_CURSO_1);
+   output_low(FIM_CURSO_2);
 
    while (TRUE)
    {
-
-      if (input(PIN_A2) && !input(PIN_A3))
+      if (input(MOTOR1) && !input(MOTOR2))
       {
-         output_high(PIN_A4);
+         output_high(LED_STATUS);
          status_bloqueio = 1;
       }
 
-      if (!input(PIN_A2) && input(PIN_A3))
+      if (!input(MOTOR1) && input(MOTOR2))
       {
-         output_low(PIN_A4);
+         output_low(LED_STATUS);
          status_bloqueio = 0;
       }
 
@@ -62,7 +80,7 @@ void main()
       if (um_segundo)
       {
          um_segundo = 0;
-         output_toggle(PIN_A0);
+         output_toggle(LED);
       }
    }
 }

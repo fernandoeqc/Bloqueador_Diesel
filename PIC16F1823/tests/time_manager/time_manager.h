@@ -15,8 +15,8 @@
 #define SAIDA1 PIN_C5 //RL rele
 
 //PORTA
-#define FIM_CURSO_IN PIN_A2
-//#define FIM_CURSO    PIN_A3
+#define FIM_CURSO_1  PIN_A2
+#define FIM_CURSO_2  PIN_A3
 #define MOTOR1       PIN_A4
 #define MOTOR2       PIN_A5
 
