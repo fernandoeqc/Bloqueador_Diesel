@@ -1,5 +1,5 @@
 #define TEMPOCICLOLEDS 30
-#define MAX_UNANSWERED_TIME 10
+#define MAX_UNANSWERED_TIME 5
 #define QT_COMMANDS 3
 #define DEBUG
 
@@ -22,9 +22,6 @@ void piscaLedStatus(struct latx *lat){
       bit_clear(*latCopy.porta,latCopy.pino);
       return;
    }
-
-
-
    *lat = latCopy;
 }
 
@@ -35,7 +32,6 @@ void RDA_isr(void) {
 }
 
 static unsigned int8 flags_control = 0;
-
 static unsigned int8 valid_commands[QT_COMMANDS] = {'B', 'D', 'R'};
 
 struct flags {
@@ -45,8 +41,7 @@ struct flags {
 }flagsControl;
 
 unsigned int1 verifyFlags (struct flags *flag) {
-   int8 flg = *flag;
-   //int8 x = 0;
+   int8 flg = *flag; //== NAO MEXER, TA FUNCIONANDO ==
 
    if(flg) {
       return TRUE;
@@ -68,9 +63,7 @@ unsigned int1 isValidCommand(unsigned char command) {
 }
 
 int1 waitEndMotor (struct taskData *tk) {
-   struct taskData t_tk;
    static unsigned int8 count_wait_init = 0;
-   t_tk = *tk;
 
    if (FIM_CURSO_IN) {   
       count_wait_init++;
@@ -78,41 +71,30 @@ int1 waitEndMotor (struct taskData *tk) {
 
    if (count_wait_init > 0) {
       count_wait_init = 0;
-      t_tk.flag = FALSE;
+      tk->flag = FALSE;
    }
    return 0;
 }
 
 
-void checkFlags () {
-   unsigned int8 i;
-   for (i = 0; i < TASK_LENGHT; i++) {
-      /* if (taskList[i]->data.flag) {
-         taskList[i]->func_time (&taskList[i]->data);
-      } */
-   }
-}
-
 int1 ativaMotor(struct taskData *tk) { 
-   struct taskData t_tk;
-   //t_tk = *tk;
 
-   t_tk.active = FALSE;
-   t_tk.flag = TRUE;
+   tk->active = FALSE;
+   tk->flag = TRUE;
    
-   if (t_tk.command == 'O') {
+   if (tk->command == 'O') {
       output_low(MOTOR1);
       output_high(MOTOR2);
    }
-   else if (t_tk.command == 'C') {
+   else if (tk->command == 'C') {
       output_low(MOTOR2);
       output_high(MOTOR1);
    }
    else {
-      t_tk.flag = FALSE;
+      tk->flag = FALSE;
    }
 
-   //*tk = t_tk;
+
 }
 
 
@@ -146,30 +128,26 @@ char getCommand(unsigned int8 get) {
 }
 
 void checkUart(struct taskData *tk) {
-   struct taskData t_tk;
    unsigned char cmd; 
-   t_tk = *tk;
-
+ 
    cmd = getCommand(GET_LAST);
 
    if (cmd == 'B') {
       flagsControl.uart = TRUE;
       //bit_set (flags_control, 2);
-      t_tk.command == cmd;
+      tk->command == cmd;
    }
 
    else if (cmd == 'D') {
       flagsControl.uart = FALSE;
       //bit_clear (flags_control, 2);
-      t_tk.command == cmd;
+      tk->command == cmd;
    }
-
-   *tk = t_tk;
 }
 
 
 void checkPowerIn(struct taskData *tk) {   
-   output_toggle(PIN_C3);
+   
    if(POWER_IN) {
       flagsControl.power = FALSE;
       //bit_set(flags_control, 1);
@@ -182,27 +160,22 @@ void checkPowerIn(struct taskData *tk) {
 
 
 void checkTimeMessage(struct taskData *tk) {
-   struct taskData t_tk;   
-   unsigned char cmd;
-   t_tk = *tk;
 
-   t_tk.command = getCommand(NEW_DATA);
+   tk->command = getCommand(NEW_DATA);
    
-   if (isValidCommand(t_tk.command)) {
-      t_tk.state = 0;
+   //se recebeu um comando valido
+   if (isValidCommand(tk->command)) {
+      tk->state = 0;
       flagsControl.com_time = FALSE;
+      return;
    }
-
-   else {
-      if (t_tk.state > MAX_UNANSWERED_TIME) {
-         flagsControl.com_time = TRUE;
-         return;
-      }
-      t_tk.state++;
+   //se atingiu o tempo maximo sem comunicacao 
+   else if (tk->state > MAX_UNANSWERED_TIME) {
+      flagsControl.com_time = TRUE;
+      return;
    }
-
-   t_tk.state++;
-   *tk = t_tk;
+   //conta sem comunicacao
+   tk->state++;
 }
 
 
@@ -231,7 +204,6 @@ int main (void) {
 
  /*
 
-   */
    struct taskFunc uart;
    uart.sec = 0x00;
    uart.count_sec = 0x00;
@@ -259,24 +231,24 @@ int main (void) {
    contaBat.data.flag = FALSE;
    contaBat.data.active = TRUE;
    contaBat.func_time = ativaBat;
+   */
 
    struct taskFunc powerIn;
    powerIn.sec = 0x00;
    powerIn.count_sec = 0x00;
-   powerIn.data.command = '0';
-   powerIn.data.state = '0';
+   powerIn.data.command = 't';
+   powerIn.data.state = 'b';
    powerIn.data.flag = FALSE;
    powerIn.data.active = TRUE;
    powerIn.func_time = checkPowerIn; 
    
    //initTasks ();
    
-   addTask (&contaBat);
-   addTask (&contaBloq);
-   addTask (&uart);
-   addTask (&timeReceive);
+   //addTask (&contaBat);
+   //addTask (&contaBloq);
+   //addTask (&uart);
+   //addTask (&timeReceive);
    addTask (&powerIn);
-
 
   
    //===========REGISTRADORES===================================
@@ -294,7 +266,7 @@ int main (void) {
    
    while (TRUE) {      
       //verifyFlags(&flagsControl);
-      runTasks(); 
+      runTasks();
      
       /* if(flag_interr)
       {          

@@ -47,32 +47,22 @@ void initTasks () {
 
 void addTask (struct taskFunc *tk) {
    static unsigned int8 i = 0;
-   struct taskFunc t_tk;
-   int test = 0;
 
-   t_tk = *tk;
-   test = tk;
-   test = &tk;
-
-   taskList[i] = &t_tk;
+   taskList[i] = tk;
    i++;
 }
 
-
+ 
 static void runTk (struct taskFunc *tk) {
-   struct taskFunc t_tk;
-   t_tk = *tk;
-   function func = t_tk.func_time; 
+   function func = tk->func_time; 
 
-   if (t_tk.count_sec == t_tk.sec) {
-      t_tk.count_sec = 0;
-      func (&(t_tk));
+   if (tk->count_sec == tk->sec) {
+      tk->count_sec = 0;
+      func (&(tk->data));
    }
    else {
-      t_tk.count_sec++;
+      tk->count_sec++;
    }
-   
-   *tk = t_tk;
 }
 
 void runTasks () {
