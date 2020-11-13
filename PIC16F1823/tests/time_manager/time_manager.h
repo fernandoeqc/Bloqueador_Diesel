@@ -16,7 +16,7 @@
 
 //PORTA
 #define FIM_CURSO_1  PIN_A2
-#define FIM_CURSO_2  PIN_A3
+//#define FIM_CURSO_2  PIN_A3
 #define MOTOR1       PIN_A4
 #define MOTOR2       PIN_A5
 
@@ -24,7 +24,7 @@
 //PORTC
 #define ADC_BAT      4 //PIN_C0
 #define POWER_IN     PIN_C1
-//#define LED2         PIN_C2
+#define FIM_CURSO_2  PIN_C2
 #define CARGA_BAT    PIN_C3
 #define LED1         PIN_C4
 #define LED2         PIN_C5

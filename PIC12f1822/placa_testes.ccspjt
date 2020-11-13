@@ -4,10 +4,26 @@ Processor_Text=PIC12F1822
 CCSVerions=5.015
 Compiler=PCM
 CCSVersion=5.015
+Development_Mode=
+ToolSuite=CCS
 [Target Data]
 FileList=placa_testes.c
+BuildTool=C-COMPILER
+OptionString=+FM
+AdditionalOptionString=
+BuildRequired=1
 [Directories]
 Include=C:\Program Files (x86)\PICC\Devices\;C:\Program Files (x86)\PICC\Drivers\;C:\Users\fernandoLab\Documents\GitHub\Bloqueador_Diesel\headers\
+Library=
+Library=\;C:\Users\fernandoLab\Documents\GitHub\Bloqueador_Diesel\headers\
+Library=\;C:\Users\fernandoLab\Documents\GitHub\Bloqueador_Diesel\headers\
+Library=
+Library=\;C:\Users\fernandoLab\Documents\GitHub\Bloqueador_Diesel\headers\
+Library=\;C:\Users\fernandoLab\Documents\GitHub\Bloqueador_Diesel\headers\
+Library=
+Library=\;C:\Users\fernandoLab\Documents\GitHub\Bloqueador_Diesel\headers\
+Library=
+LinkerScript=
 [C:\Users\fernandoLab\Documents\GitHub\Bloqueador_Diesel\PIC12f1822\placa_testes]
 Type=4
 [mru-list]
@@ -17,6 +33,33 @@ Type=4
 2=
 [placa_testes.c]
 Type=4
+Path=
+FileList=
+BuildTool=
+OptionString=
+AdditionalOptionString=
+[defines]
+enabled=0
+chip=1
+D1=
+V1=
+[fileformats]
+forcecoff=1
+debug=4
+error=2
+object=0
+list=0
+scratch=0
+sta=1
+tre=1
+allerrors=1
+allwarnings=1
+stayupne=3
+stayupoe=0
+[Windows]
+0=0000 %S 0 0 796 451 3 0
+[CompilerVersion]
+Fixed=
 [Units]
 Count=1
 1=placa_testes (main)
