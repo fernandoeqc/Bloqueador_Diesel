@@ -16,12 +16,12 @@ void fim_curso(int1 status)
 
    
    if (status) {
-      output_low(FIM_CURSO_2);
-      output_high(FIM_CURSO_1);
-   }
-   else {
       output_low(FIM_CURSO_1);
       output_high(FIM_CURSO_2);
+   }
+   else {
+      output_low(FIM_CURSO_2);
+      output_high(FIM_CURSO_1);
    }
 
    while (count < 5)

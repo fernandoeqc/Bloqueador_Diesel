@@ -48,11 +48,18 @@ static unsigned int8 valid_commands[QT_COMMANDS] = {
 unsigned char actual_data = '-';
 static unsigned int8 flags_control = 0;
 
-enum status_motor {
-   PARKED,
-   TRANSITION,
-   ERROR
-};
+//status do motor
+#define ERROR 0
+#define OPENED 1
+#define CLOSED 2
+#define TRANSITION 3
+
+//movimento do motor
+#define POSIX_PARKED 0
+#define POSIX_OPENING 1
+#define POSIX_CLOSING 2
+#define POSIX_ERROR 3
+
 
 #pragma INT_RDA
 void RDA_isr(void) {  
@@ -72,7 +79,9 @@ unsigned int8 getFlags(struct flags flag) {
    return flg;
 }
 
-
+//=======================================================================
+//Retorna 1 se mudou de 0 pra 1+, ou de 1+ pra 0; retorna 0 se nao mudou
+//=======================================================================
 unsigned int1 verifyFlags (struct flags flag) {
    static unsigned int8 last_flag = 0;
    unsigned int8 flg; 
@@ -238,68 +247,83 @@ unsigned char checkMotorPosition () {
 
 
 void statusMotor(struct taskFunc *tk) {
-   static unsigned int1 flg_transition = 0, count_err_trans = 0;
+   static unsigned int1  count_err_trans = 0;
+   static unsigned int8 flg_transition = 0, position_motor = 0;
 
-   if (tk->data.state == PARKED) {
-      if (verifyFlags(flagsControl)) {
-
-         if (checkMotorPosition()){
-            printf("error_init_state\r\n");
-            tk->data.state = ERROR;
-         }
-         //em ordem de menos importante para mais importante
-         if (flagsControl.com_time) {
-            tk->sec = TIME_BEFORE_BLOQ;
-            tk->count_sec = 0;
-            tk->data.command = CLOSE_DIESEL;
-            tk->data.active = TRUE;
-         }
+   position_motor = checkMotorPosition();
+   
+   if (
+         ((tk->data.state == OPENED) || (tk->data.state == CLOSED)) && 
+         (verifyFlags(flagsControl))
+      ) {
          
-         else if (flagsControl.power) {
-            tk->sec = TIME_BEFORE_BLOQ;
-            tk->count_sec = 0;
-            tk->data.command = CLOSE_DIESEL;
-            tk->data.active = TRUE;
-         }
-
-         else if (flagsControl.uart) {
-            tk->sec = TIME_BEFORE_BLOQ;
-            tk->count_sec = 0;
-            tk->data.command = CLOSE_DIESEL;
-            tk->data.active = TRUE;
-         }
-
-         //desbloqueio
-         else {
-            tk->sec = 0;
-            tk->count_sec = 0;
-            tk->data.command = OPEN_DIESEL;
-            tk->data.active = TRUE;
-         }
+      if (flagsControl.com_time) {
+         tk->sec = TIME_BEFORE_BLOQ;
+         tk->count_sec = 0;
+         tk->data.command = CLOSE_DIESEL;
+         tk->data.active = TRUE;
       }
-      //parado, mas inputs inalterados
+      
+      else if (flagsControl.power) {
+         tk->sec = TIME_BEFORE_BLOQ;
+         tk->count_sec = 0;
+         tk->data.command = CLOSE_DIESEL;
+         tk->data.active = TRUE;
+      }
+
+      else if (flagsControl.uart) {
+         tk->sec = TIME_BEFORE_BLOQ;
+         tk->count_sec = 0;
+         tk->data.command = CLOSE_DIESEL;
+         tk->data.active = TRUE;
+      }
+
+      if(tk->data.state == tk->data.command) {
+         tk->data.active = FALSE;
+         retirar os true de cima
+      }
+      //desbloqueio
+      else {
+         tk->sec = 0;
+         tk->count_sec = 0;
+         tk->data.command = OPEN_DIESEL;
+         tk->data.active = TRUE;
+      }
    }
 
    else if (tk->data.state == TRANSITION) {
-      if (!checkMotorPosition()) {
+
+      if (position_motor == POSIX_PARKED) {
          if(!flg_transition) {
-            //esperando inicio do giro do motor
-            printf("|\r\n");
+            //motor ja está na posição ====== fazer testes
+            tk->data.state = flg_transition;
+            tk->data.active = FALSE;
+            flg_transition = 0;
+            
+            count_err_trans = 0;
+            printf("M nao girou |\r\n");
          }
          else {
             //fim da transicao
-            flg_transition = 0;
-            tk->data.state = PARKED;
+            tk->data.state = flg_transition;
             tk->data.active = FALSE;
+            flg_transition = 0;
             
             count_err_trans = 0;
-            printf("_\r\n");
+            printf("M fim _\r\n");
          }
       }
-      else {
-         //motor esta em transicao
-         flg_transition = 1;
-         printf("/\r\n");
+      
+      else if (position_motor == POSIX_OPENING) {
+         //motor esta abrindo
+         flg_transition = position_motor;
+         printf("M abrindo /\r\n");
+      }
+      
+      else if (position_motor == POSIX_CLOSING) {
+         //motor esta fechando
+         flg_transition = position_motor;
+         printf("M fechando \\\r\n");
       }
 
       count_err_trans++;
@@ -345,7 +369,7 @@ int main (void) {
    contaBloq.sec = 0x00;
    contaBloq.count_sec = 0x00;
    contaBloq.data.command = OPEN_DIESEL;
-   contaBloq.data.state = PARKED;
+   contaBloq.data.state = OPENED;
    contaBloq.data.flag = FALSE;
    contaBloq.data.active = FALSE;
    contaBloq.func_time = ativaMotor;
@@ -362,8 +386,8 @@ int main (void) {
    //initTasks (); //necessario?
    
    //addTask (&uart);
-   addTask (&timeReceive);
-   //addTask (&powerIn);
+   //addTask (&timeReceive);
+   addTask (&powerIn);
    addTask (&contaBloq);
 
   
@@ -381,27 +405,16 @@ int main (void) {
    output_low (LED2);
    
    while (TRUE) {      
-      //verifyFlags(&flagsControl);
       
-       /* if(flag_interr)
-      {          
-         flag_interr = 0b0;
-      }
-
-       if(um_periodo)
-      {
-         um_periodo = 0;
-      }   
-      */
 
       if(um_segundo) {
-         um_segundo = 0b0;
-
-         runTasks();
-         statusMotor(&contaBloq);
          printf("flags: %u%u%u\r\n", flagsControl.power, 
                                     flagsControl.uart, 
                                     flagsControl.com_time);
+         um_segundo = 0b0;
+         statusMotor(&contaBloq);
+         runTasks();
+         
  
          
          //piscaLed(1,50,LED2);
