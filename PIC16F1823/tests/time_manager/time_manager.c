@@ -117,6 +117,7 @@ void ativaMotor(struct taskData *tk) {
       delay_ms(100);
       output_high(MOTOR2);
 
+      output_low(LED2);
    }
 
    else if (tk->command == POSIX_CLOSING) {
@@ -124,6 +125,8 @@ void ativaMotor(struct taskData *tk) {
       output_low(MOTOR2);
       delay_ms(100);
       output_high(MOTOR1);
+
+      output_high(LED1);
    }
 }
 
@@ -198,11 +201,11 @@ void checkPowerIn(struct taskData *tk) {
    
    if(input(POWER_IN)) {
       flagsControl.power = FALSE;
-      //bit_set(flags_control, 1); //flags_control obsoleto
+      //output_high(LED2);
    }
    else {
       flagsControl.power = TRUE;
-      //bit_clear(flags_control, 1);
+      //output_low(LED2);
    }
 }
 
@@ -222,9 +225,45 @@ unsigned char checkMotorPosition () {
    return reading;
 }
 
+struct taskFunc toggleOpenClose (struct taskFunc tk) {
+   
+   if (flagsControl.com_time) {
+         tk.sec = TIME_BEFORE_BLOQ;
+         tk.count_sec = 0;
+         tk.data.command = POSIX_CLOSING;
+      }
+      
+      else if (flagsControl.power) {
+         tk.sec = TIME_BEFORE_BLOQ;
+         tk.count_sec = 0;
+         tk.data.command = POSIX_CLOSING;
+      }
+
+      else if (flagsControl.uart) {
+         tk.sec = 0;
+         tk.count_sec = 0;
+         tk.data.command = POSIX_CLOSING;
+      }
+
+      //desbloqueio
+      else {
+         tk.sec = 0;
+         tk.count_sec = 0;
+         tk.data.command = POSIX_OPENING;
+      }
+      
+      if(tk.data.state == tk.data.command) {
+         tk.data.active = FALSE;
+      }
+      else {
+         tk.data.active = TRUE;
+      }
+
+      return tk;
+}
 
 void statusMotor(struct taskFunc *tk) {
-   static unsigned int1  count_err_trans = 0;
+   static unsigned int8  count_err_trans = 0;
    static unsigned int8 flg_transition = 0, position_motor = 0;
 
    position_motor = checkMotorPosition();
@@ -233,38 +272,9 @@ void statusMotor(struct taskFunc *tk) {
          ((tk->data.state == OPENED) || (tk->data.state == CLOSED)) && 
          (verifyFlags(flagsControl))
       ) {
-         
-      if (flagsControl.com_time) {
-         tk->sec = TIME_BEFORE_BLOQ;
-         tk->count_sec = 0;
-         tk->data.command = POSIX_CLOSING;
-      }
       
-      else if (flagsControl.power) {
-         tk->sec = TIME_BEFORE_BLOQ;
-         tk->count_sec = 0;
-         tk->data.command = POSIX_CLOSING;
-      }
-
-      else if (flagsControl.uart) {
-         tk->sec = 0;
-         tk->count_sec = 0;
-         tk->data.command = POSIX_CLOSING;
-      }
-
-      //desbloqueio
-      else {
-         tk->sec = 0;
-         tk->count_sec = 0;
-         tk->data.command = POSIX_OPENING;
-      }
+      *tk = toggleOpenClose(*tk);
       
-      if(tk->data.state == tk->data.command) {
-         tk->data.active = FALSE;
-      }
-      else {
-         tk->data.active = TRUE;
-      }
    }
 
    else if (tk->data.state == TRANSITION) {
@@ -272,12 +282,11 @@ void statusMotor(struct taskFunc *tk) {
       if (position_motor == POSIX_PARKED) {
          if(!flg_transition) {
             //motor ja está na posição ====== fazer testes
-            tk->data.state = flg_transition;
-            tk->data.active = FALSE;
-            flg_transition = 0;
-            
-            count_err_trans = 0;
-            printf("M nao girou |\r\n");
+            //tk->data.state = flg_transition;
+            //tk->data.active = FALSE;
+            //flg_transition = 0;
+         
+            printf("aguardando M |\r\n");
          }
          else {
             //fim da transicao
@@ -306,6 +315,7 @@ void statusMotor(struct taskFunc *tk) {
       if (count_err_trans > MAX_TRANSITION_TIME) {
          printf("error_max_timeout\r\n");
          tk->data.state = ERROR;
+         tk->data.state = FALSE;
       }
    }
    
@@ -363,7 +373,7 @@ int main (void) {
    //initTasks (); //necessario?
    
    addTask (&uart);
-   addTask (&timeReceive);
+   //addTask (&timeReceive);
    addTask (&powerIn);
    addTask (&contaBloq);
 
@@ -380,23 +390,27 @@ int main (void) {
 
    output_low (LED1);
    output_low (LED2);
+
+   for(unsigned int8 i = 0; i < 6; i++) {
+      output_toggle(LED1);
+      output_toggle(LED2);
+      delay_ms(150);
+   }
    
    while (TRUE) {      
       
 
       if(um_segundo) {
+         um_segundo = 0b0;
          printf("flags: %u%u%u\r\n", flagsControl.power, 
                                     flagsControl.uart, 
                                     flagsControl.com_time);
-         um_segundo = 0b0;
          statusMotor(&contaBloq);
          runTasks();
          
  
          
-         //piscaLed(1,50,LED2);
-        
-
+         output_toggle(LED1);
       }
    }
 }

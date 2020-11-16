@@ -32,10 +32,10 @@
      <ITEM name="nItems">0</ITEM>
     </PROPERTIES>
    </POPUP>
-   <POPUP w="380" x="1438" flags="00000048" y="168" h="188" pid="3" iid="1">
+   <POPUP w="52" x="1438" flags="00000048" y="168" h="14" pid="3" iid="1">
     <PROPERTIES/>
    </POPUP>
-   <POPUP w="12" x="2235" flags="0000000b" y="205" h="39" pid="4" iid="1">
+   <POPUP w="12" x="2214" flags="0000000b" y="601" h="39" pid="4" iid="1">
     <PROPERTIES>
      <ITEM name="DataType">2</ITEM>
      <ITEM name="DispChars">Yes</ITEM>
@@ -65,7 +65,7 @@
      <ITEM name="TopLineAddress">00000000</ITEM>
     </PROPERTIES>
    </POPUP>
-   <POPUP w="114" x="1518" flags="00000008" y="248" h="232" pid="7" iid="1">
+   <POPUP w="14" x="1518" flags="00000008" y="248" h="18" pid="7" iid="1">
     <PROPERTIES/>
    </POPUP>
    <POPUP w="8" x="1538" flags="00000002" y="268" h="8" pid="8" iid="1">
@@ -80,9 +80,11 @@
    </POPUP>
    <POPUP w="701" x="66" flags="0000002b" y="84" h="524" pid="1" iid="1">
     <PROPERTIES>
-     <ITEM name="Breakpoint 0">"",03E0,0000,0780,9118,-1
+     <ITEM name="Breakpoint 0">"",03EE,0000,0780,9118,1
 </ITEM>
-     <ITEM name="Breakpoint 1">"",055C,0000,963A,9118,-1
+     <ITEM name="Breakpoint 1">"",01FA,0000,CD93,9118,-1
+</ITEM>
+     <ITEM name="Breakpoint 2">"",05B8,0000,D332,9118,1
 </ITEM>
      <ITEM name="CaseSensitive">No</ITEM>
      <ITEM name="DISPADDRS">Yes</ITEM>
@@ -90,10 +92,10 @@
      <ITEM name="DISPOPCODES">No</ITEM>
      <ITEM name="FIXUPBPTS">Yes</ITEM>
      <ITEM name="WordsOnly">No</ITEM>
-     <ITEM name="nBreakpoints">2</ITEM>
+     <ITEM name="nBreakpoints">0</ITEM>
     </PROPERTIES>
    </POPUP>
-   <POPUP w="462" x="779" flags="0000000b" y="72" h="651" pid="2" iid="1">
+   <POPUP w="462" x="779" flags="0000800b" y="72" h="651" pid="2" iid="1">
     <PROPERTIES>
      <ITEM name="Address Column Width">94</ITEM>
      <ITEM name="AutoResize">No</ITEM>
@@ -110,13 +112,13 @@
      <ITEM name="nItems">0</ITEM>
     </PROPERTIES>
    </POPUP>
-   <POPUP w="450" x="1548" flags="00008063" y="114" h="250" pid="0" iid="2">
+   <POPUP w="450" x="1548" flags="00000063" y="114" h="250" pid="0" iid="2">
     <PROPERTIES>
      <ITEM name="AutoEcho">1</ITEM>
      <ITEM name="HexMode">0</ITEM>
     </PROPERTIES>
    </POPUP>
-   <POPUP w="380" x="1418" flags="00000048" y="148" h="177" pid="3" iid="3">
+   <POPUP w="52" x="1418" flags="00000048" y="148" h="13" pid="3" iid="3">
     <PROPERTIES/>
    </POPUP>
    <POPUP w="8" x="1438" flags="0000000a" y="168" h="32" pid="4" iid="3">
@@ -149,7 +151,7 @@
      <ITEM name="TopLineAddress">00000000</ITEM>
     </PROPERTIES>
    </POPUP>
-   <POPUP w="114" x="1498" flags="00000008" y="228" h="232" pid="7" iid="3">
+   <POPUP w="14" x="1498" flags="00000008" y="228" h="18" pid="7" iid="3">
     <PROPERTIES/>
    </POPUP>
    <POPUP w="8" x="1518" flags="00000002" y="248" h="8" pid="8" iid="3">
