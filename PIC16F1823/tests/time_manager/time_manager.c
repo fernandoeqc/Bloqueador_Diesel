@@ -13,7 +13,6 @@
 #define DEBUG
 
 #include <time_manager.h>
-#include <ep_debug.h>
 #include <stddef.h>
 #include <functions.h>
 #include <tasks.h>
