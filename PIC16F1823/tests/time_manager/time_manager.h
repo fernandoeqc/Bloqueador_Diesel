@@ -9,10 +9,6 @@
 #use delay(internal=4000000)
 #pragma use rs232(baud=9600,parity=N,xmit=PIN_A0,rcv=PIN_A1,bits=8,stream=PORT1)
 
-#define TIMER0_F
-#define LED1 PIN_A5
-#define LED2 PIN_A4
-#define SAIDA1 PIN_C5 //RL rele
 
 //PORTA
 #define FIM_CURSO_1  PIN_A2
@@ -34,16 +30,16 @@
 #define TIMER0_F
 
 //EEPROM===========================
-//SELETOR DE FREQUENCIA - byte 0A
-#pragma ROM 0xF000 = {0x00}
+//FLAGS DE CONTROLE - byte 0A
+#pragma ROM 0xF000 = {0xFF}
 #define EP_CONTROL_FLAGS 0x00,0x01
 
-//SELETOR DE FREQUENCIA - byte 0A
-#pragma ROM 0xF014 = {0x00}
-#define EP_ID 0x01,0x01
+//ULTIMO COMANDO DADO AO MOTOR
+#pragma ROM 0xF001 = {0xFF}
+#define EP_MOTOR_COMMAND 0x01,0x01
 
 //ERROS LOGICA - #define DEBUG
-#pragma ROM 0xF015 = {0x00}
+#pragma ROM 0xF015 = {0xFF}
 #define EP_DEBUG 0x02,0x01
 
 

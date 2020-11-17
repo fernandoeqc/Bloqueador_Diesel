@@ -78,9 +78,9 @@
      <ITEM name="TopLineAddress">00000000</ITEM>
     </PROPERTIES>
    </POPUP>
-   <POPUP w="701" x="66" flags="0000002b" y="84" h="524" pid="1" iid="1">
+   <POPUP w="701" x="66" flags="0000802b" y="84" h="524" pid="1" iid="1">
     <PROPERTIES>
-     <ITEM name="Breakpoint 0">"",03EE,0000,0780,9118,1
+     <ITEM name="Breakpoint 0">"",0250,0000,214F,9118,1
 </ITEM>
      <ITEM name="Breakpoint 1">"",01FA,0000,CD93,9118,-1
 </ITEM>
@@ -92,10 +92,10 @@
      <ITEM name="DISPOPCODES">No</ITEM>
      <ITEM name="FIXUPBPTS">Yes</ITEM>
      <ITEM name="WordsOnly">No</ITEM>
-     <ITEM name="nBreakpoints">0</ITEM>
+     <ITEM name="nBreakpoints">1</ITEM>
     </PROPERTIES>
    </POPUP>
-   <POPUP w="462" x="779" flags="0000800b" y="72" h="651" pid="2" iid="1">
+   <POPUP w="462" x="779" flags="0000000b" y="72" h="651" pid="2" iid="1">
     <PROPERTIES>
      <ITEM name="Address Column Width">94</ITEM>
      <ITEM name="AutoResize">No</ITEM>

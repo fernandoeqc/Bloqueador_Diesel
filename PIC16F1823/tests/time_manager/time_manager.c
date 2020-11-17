@@ -10,36 +10,21 @@
 #define UART_RESTART_COMMAND 'R'
 #define QT_COMMANDS 3
 
-#define DEBUG
+#define DEBUG 
 
 #include <time_manager.h>
 #include <stddef.h>
 #include <functions.h>
 #include <tasks.h>
 
-
-/* volatile unsigned int8 contaPeriodo = TEMPOCICLOLEDS;
-void piscaLedStatus(struct latx *lat){
-   struct latx latCopy;
-   latCopy = *lat;
-
-   //responsavel por desligar o led no segundo periodo
-   //se led esta ligado, desliga
-   if(bit_test(*latCopy.porta,latCopy.pino))
-   {
-      bit_clear(*latCopy.porta,latCopy.pino);
-      return;
-   }
-   *lat = latCopy;
-}
-
-*/
-
 static unsigned int8 valid_commands[QT_COMMANDS] = {
    UART_BLOQ_COMMAND, 
    UART_DESBLOQ_COMMAND, 
    UART_RESTART_COMMAND
 };
+
+unsigned char actual_data = '-';
+unsigned char com_uart;
 
 //status do motor
 #define ERROR 0
@@ -53,9 +38,6 @@ static unsigned int8 valid_commands[QT_COMMANDS] = {
 #define POSIX_CLOSING 2
 #define POSIX_ERROR 3
 
-unsigned char actual_data = '-';
-unsigned char status_motor = OPENED, command_motor = OPENED;
-
 
 #pragma INT_RDA
 void RDA_isr(void) {  
@@ -67,26 +49,24 @@ struct flags {
    int1 power:1; //alimentacao
    int1 uart:1;  //comandos de bloq e desbloq
    int1 com_time:1; //tempo sem comunicacao
-   int1 endline:1; //mudança no fim de curso
+   int1 restart:1;
 }flagsControl;
 
 
-unsigned int8 getFlags(void) {
-   unsigned int8 flg; //== NAO MEXER, TA FUNCIONANDO ==
-   
-   if (flagsControl.power)
+unsigned int8 getFlags(struct flags flag) {
+   unsigned int8 flg = flag; //== NAO MEXER, TA FUNCIONANDO ==
    return flg;
 }
 
-
 //=======================================================================
 //Retorna 1 se mudou de 0 pra 1+, ou de 1+ pra 0; retorna 0 se nao mudou
+//Sempre vai retornar 1 no inicio do programa
 //=======================================================================
-unsigned int1 verifyFlags (void) {
-   static unsigned int8 last_flag = 0;
-   unsigned int8 flg;
+unsigned int1 verifyFlags (struct flags flag) {
+   static unsigned int8 last_flag = 0xFF; 
+   unsigned int8 flg; 
    
-   flg = getFlags();
+   flg = getFlags(flag);
 
    //se mudou de 0 pra >0, ou de >0 pra 0
    if (last_flag ^ flg) {
@@ -97,29 +77,7 @@ unsigned int1 verifyFlags (void) {
 }
 
 
-unsigned int1 turnValve (void) { 
-   
-   if (command_motor == CLOSED) {
-      output_low(MOTOR2);
-      delay_ms(100);
-      output_high(MOTOR1);
-
-      output_high(LED1);
-   }
-
-   else if (command_motor == OPENED) {
-      output_low(MOTOR1);
-      delay_ms(100);
-      output_high(MOTOR2);
-
-      output_low(LED2);
-   }
-
-   controlValve.active = FALSE;
-}
-
-
-unsigned int1 isValidCommand (unsigned char command) {
+unsigned int1 isValidCommand(unsigned char command) {
    unsigned int8 i;
 
    for (i = 0; i < QT_COMMANDS; i++) {
@@ -131,8 +89,33 @@ unsigned int1 isValidCommand (unsigned char command) {
 }
 
 
+void ativaMotor(struct taskData *tk) { 
+
+   //tk->active = FALSE;
+   //tk->flag = TRUE;
+   
+   if (tk->command == POSIX_OPENING) {
+      tk->state = TRANSITION;
+      output_low(MOTOR1);
+      delay_ms(100);
+      output_high(MOTOR2);
+
+      output_low(LED2);
+   }
+
+   else if (tk->command == POSIX_CLOSING) {
+      tk->state = TRANSITION;
+      output_low(MOTOR2);
+      delay_ms(100);
+      output_high(MOTOR1);
+
+      output_high(LED1);
+   }
+}
+
+
 enum {NEW_DATA, GET_LAST};
-char getCommand (unsigned int8 get) {
+char getCommand(unsigned int8 get) {
    static unsigned char last_data = 0;
    
    if (isValidCommand(actual_data)) {
@@ -154,58 +137,50 @@ char getCommand (unsigned int8 get) {
 }
 
 
-//=======================================================================
-//bloqueia quando atinge tempo max sem comunicao
-//=======================================================================
-int1 checkTimeMessage (void) {
-   static unsigned int8 time = 0;
-   unsigned int8 command; 
-   command = getCommand(NEW_DATA);
+void checkTimeMessage(struct taskData *tk) {
+
+   tk->command = getCommand(NEW_DATA);
    
    //se recebeu um comando valido
-   if (command) {
+   if (tk->command) {
+      tk->state = 0;
       flagsControl.com_time = FALSE;
-      return TRUE;
+      return;
    }
    //se atingiu o tempo maximo sem comunicacao 
-   else if (time >= MAX_WDT_UART_TIME) {
+   else if (tk->state >= MAX_WDT_UART_TIME) {
       flagsControl.com_time = TRUE;
-      return FALSE;
+      return;
    }
-   //conta tempo sem comunicacao
-   time++;
+   //conta sem comunicacao
+   tk->state++;
 }
 
 
-//=======================================================================
-//recebe caracteres UART e executa comandos
-//=======================================================================
-int1 checkCommandsUart (void) {
-   unsigned char cmd; 
- 
-   cmd = getCommand(GET_LAST);
+void checkCommandsUart(struct taskData *tk) {
+   
 
-   if (cmd == UART_BLOQ_COMMAND) {
+   com_uart = getCommand(GET_LAST);
+
+   if (com_uart == UART_BLOQ_COMMAND) {
       flagsControl.uart = TRUE;
+      //bit_set (com, 2);
+      tk->command == com_uart;
    }
 
-   else if (cmd == UART_DESBLOQ_COMMAND) {
+   else if (com_uart == UART_DESBLOQ_COMMAND) {
       flagsControl.uart = FALSE;
+      //bit_clear (com, 2);
+      tk->command == com_uart;
    }
 
-   else if (cmd == UART_RESTART_COMMAND) {
-      //gravar os dados antes de resetar=======================================
-      reset_cpu();
+   else if (com_uart == UART_RESTART_COMMAND) {
+      flagsControl.restart = TRUE;
    }
-
-   return TRUE;
 }
 
 
-//=======================================================================
-//verifica alimentacao externa do dispositivo
-//=======================================================================
-int1 checkPowerIn (void) {   
+void checkPowerIn(struct taskData *tk) {   
    
    if(input(POWER_IN)) {
       flagsControl.power = FALSE;
@@ -215,14 +190,10 @@ int1 checkPowerIn (void) {
       flagsControl.power = TRUE;
       //output_low(LED2);
    }
-   return TRUE;
 }
 
 
-//=======================================================================
-//retorna 0 se motor esta parado, 1 se es esta abrindo, 2 se esta fechando
-//=======================================================================
-unsigned char checkMotorPosition (void) {
+unsigned char checkMotorPosition () {
    unsigned int8 reading = 0;
    
    if (input(FIM_CURSO_1)) {
@@ -237,93 +208,54 @@ unsigned char checkMotorPosition (void) {
    return reading;
 }
 
-int1 waitEndMotor (void) {
-   unsigned int8 position_motor;
-   static unsigned int1 end = FALSE;
+struct taskFunc toggleOpenClose (struct taskFunc tk) {
    
-   position_motor = checkMotorPosition();
-
-   if(!position_motor) {
-      //aguardando inicio
-      
-      if (end) {
-         //fim do ciclo
-         endMotor.active = FALSE;   
-         return TRUE;
-      }
-   }
-
-   else if (position_motor == POSIX_OPENING) {
-      end = TRUE;
-      //abrindo
-   }
-
-   else if (position_motor == POSIX_CLOSING) {
-      end = TRUE;
-      //fechando
-   }
-
-   else {
-      //erro
-   }
-
-   return FALSE;
-}
-
-int1 statusMotor (void) {
-   static unsigned char actual_status;
-
-   //se valvula esta parada
-   if (!controlValve.active) {
-      if (flagsControl.com_time) {
-         controlValve.sec = TIME_BEFORE_BLOQ;
-         controlValve.count_sec = 0;
-         command_motor = CLOSED;
+   if (flagsControl.com_time) {
+         tk.sec = TIME_BEFORE_BLOQ;
+         tk.count_sec = 0;
+         tk.data.command = POSIX_CLOSING;
       }
       
       else if (flagsControl.power) {
-         controlValve.sec = TIME_BEFORE_BLOQ;
-         controlValve.count_sec = 0;
-         command_motor = CLOSED;
+         tk.sec = TIME_BEFORE_BLOQ;
+         tk.count_sec = 0;
+         tk.data.command = POSIX_CLOSING;
       }
 
       else if (flagsControl.uart) {
-         controlValve.sec = 0;
-         controlValve.count_sec = 0;
-         command_motor = CLOSED;
+         tk.sec = 0;
+         tk.count_sec = 0;
+         tk.data.command = POSIX_CLOSING;
       }
+
+      else if (flagsControl.restart){ 
+         flagsControl.restart = FALSE;
+         
+         eeprom_grava (EP_MOTOR_COMMAND, tk.data.command);
+         delay_ms(50);
+         eeprom_grava (EP_CONTROL_FLAGS, getFlags(flagsControl));
+         delay_ms(50);
+         reset_cpu ();
+      }
+      
 
       //desbloqueio
       else {
-         controlValve.sec = 0;
-         controlValve.count_sec = 0;
-         command_motor = OPENED;
+         tk.sec = 0;
+         tk.count_sec = 0;
+         tk.data.command = POSIX_OPENING;
       }
       
-      //se motor ja esta na posicao
-      if (status_motor == command_motor) {
-         controlValve.active = FALSE;
+      if(tk.data.state == tk.data.command) {
+         tk.data.active = FALSE;
+      }
+      else {
+         tk.data.active = TRUE;
       }
 
-      else {
-         controlValve.active = TRUE;
-      }    
-   }
-
-   return TRUE;
+      return tk;
 }
 
-
-int1 statusFlags (void) {
-
-   if (verifyFlags()) {
-      controlMotor.active = TRUE;
-   }
-
-   if (controlMotor.flag)
-}
-
-/* 
 void statusMotor(struct taskFunc *tk) {
    static unsigned int8  count_err_trans = 0;
    static unsigned int8 flg_transition = 0, position_motor = 0;
@@ -335,7 +267,7 @@ void statusMotor(struct taskFunc *tk) {
          (verifyFlags(flagsControl))
       ) {
       
-   
+      *tk = toggleOpenClose(*tk);
       
    }
 
@@ -387,7 +319,7 @@ void statusMotor(struct taskFunc *tk) {
    //se nao entrou em nenhum, erro!
 
 }
- */
+
 
 int main (void) {
    
@@ -395,51 +327,57 @@ int main (void) {
    flagsControl.uart = FALSE;
    flagsControl.com_time = FALSE;
 
-   controlValve.sec = 0x00;
-   controlValve.count_sec = 0x00;
-   controlValve.active = FALSE;
-   controlValve.flag = FALSE;
-   controlValve.func = openValve;
-   
-   endMotor.sec = 0x00;
-   endMotor.count_sec = 0x00;
-   endMotor.active = FALSE;
-   endMotor.flag = FALSE;
-   endMotor.func = waitEndMotor;
-
-   controlMotor.sec = 0x00;
-   controlMotor.count_sec = 0x00;
-   controlMotor.active = FALSE;
-   controlMotor.flag = FALSE;
-   controlMotor.func = statusMotor; 
+   struct taskFunc contaBloq;
+   contaBloq.sec = 0x00;
+   contaBloq.count_sec = 0x00;
+   contaBloq.data.command = POSIX_OPENING;
+   contaBloq.data.state = OPENED;
+   contaBloq.data.flag = FALSE;
+   contaBloq.data.active = FALSE;
+   contaBloq.func_time = ativaMotor;
 
    struct taskFunc timeReceive;
    timeReceive.sec = 0x00;
    timeReceive.count_sec = 0x00;
-   timeReceive.active = TRUE;
-   controlMotor.flag = FALSE;
-   timeReceive.func = checkTimeMessage;
+   timeReceive.data.command = 't';
+   timeReceive.data.state = 0;
+   timeReceive.data.flag = FALSE;
+   timeReceive.data.active = TRUE;
+   timeReceive.func_time = checkTimeMessage;
 
    struct taskFunc uart;
    uart.sec = 0x00;
    uart.count_sec = 0x00;
-   uart.active = TRUE;
-   controlMotor.flag = FALSE;
-   uart.func = checkCommandsUart; 
+   uart.data.command = '0';
+   uart.data.command = '0';
+   uart.data.flag = FALSE;
+   uart.data.active = TRUE;
+   uart.func_time = checkCommandsUart; 
+
 
    struct taskFunc powerIn;
    powerIn.sec = 0x00;
    powerIn.count_sec = 0x00;
-   powerIn.active = TRUE;
-   controlMotor.flag = FALSE;
-   powerIn.func = checkPowerIn; 
+   powerIn.data.command = 't';
+   powerIn.data.state = 'X';
+   powerIn.data.flag = FALSE;
+   powerIn.data.active = TRUE;
+   powerIn.func_time = checkPowerIn; 
    
-
+   //initTasks (); //necessario?
+   
    addTask (&uart);
-   //addTask (&timeReceive);
+   addTask (&timeReceive);
    addTask (&powerIn);
-   addTask (&controlValve);
+   addTask (&contaBloq);
 
+   unsigned int8 i;
+   i = eeprom_le(EP_MOTOR_COMMAND);
+   if (i != 0xFF) contaBloq.data.command = i;
+
+//COLOCAR NAS FLAGS
+/*    i = eeprom_le(EP_CONTROL_FLAGS);
+   if (i != 0xFF) contaBloq.data.command = i; */
   
    //===========REGISTRADORES===================================
    disable_interrupts(GLOBAL);               // habilitar interr global
@@ -451,17 +389,15 @@ int main (void) {
    enable_interrupts(GLOBAL);                // habilitar interr global
    //----------------------------------------------------------
 
-
    output_low (LED1);
    output_low (LED2);
 
-   for(unsigned int8 i = 0; i < 6; i++) {
+   for(i = 0; i < 6; i++) {
       output_toggle(LED1);
       output_toggle(LED2);
       delay_ms(150);
    }
    
-
    while (TRUE) {      
       
 
@@ -470,8 +406,7 @@ int main (void) {
          printf("flags: %u%u%u\r\n", flagsControl.power, 
                                     flagsControl.uart, 
                                     flagsControl.com_time);
-         
-         statusMotor();
+         statusMotor(&contaBloq);
          runTasks();
          
  
