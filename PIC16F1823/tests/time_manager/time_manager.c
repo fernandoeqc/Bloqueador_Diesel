@@ -1,7 +1,7 @@
 #define TEMPOCICLOLEDS 30
 
 #define MAX_WDT_UART_TIME 5
-#define MAX_TRANSITION_TIME 10
+#define MAX_TRANSITION_TIME 20
 
 #define TIME_BEFORE_BLOQ 5
 
@@ -308,8 +308,9 @@ void statusMotor(struct taskFunc *tk) {
       count_err_trans++;
       if (count_err_trans > MAX_TRANSITION_TIME) {
          printf("error_max_timeout\r\n");
-         tk->data.state = ERROR;
-         tk->data.state = FALSE;
+         reset_cpu();
+         //tk->data.state = ERROR;
+         //tk->data.state = FALSE;
       }
    }
    
@@ -379,15 +380,9 @@ int main (void) {
 /*    i = eeprom_le(EP_CONTROL_FLAGS);
    if (i != 0xFF) contaBloq.data.command = i; */
   
-   //===========REGISTRADORES===================================
-   disable_interrupts(GLOBAL);               // habilitar interr global
-   enable_interrupts(INT_RDA);               //UART
-   setup_timer_1(T1_INTERNAL | T1_DIV_BY_8); // setar timer1 para interno
-   enable_interrupts(INT_TIMER1);            // habilita Timer1
-   set_timer1(0);                            // limpar flag TMR1H & TMR1L
-   counter = int_per_sec;
-   enable_interrupts(GLOBAL);                // habilitar interr global
-   //----------------------------------------------------------
+   output_low(MOTOR1);
+   delay_ms(100);
+   output_high(MOTOR2);
 
    output_low (LED1);
    output_low (LED2);
@@ -397,6 +392,17 @@ int main (void) {
       output_toggle(LED2);
       delay_ms(150);
    }
+   
+   //===========REGISTRADORES===================================
+   disable_interrupts(GLOBAL);               // habilitar interr global
+   enable_interrupts(INT_RDA);               //UART
+   setup_timer_1(T1_INTERNAL | T1_DIV_BY_8); // setar timer1 para interno
+   enable_interrupts(INT_TIMER1);            // habilita Timer1
+   set_timer1(0);                            // limpar flag TMR1H & TMR1L
+   counter = int_per_sec;
+   enable_interrupts(GLOBAL);                // habilitar interr global
+   //----------------------------------------------------------
+   
    
    while (TRUE) {      
       

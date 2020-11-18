@@ -1,12 +1,12 @@
 <?xml version='1.0' encoding='UTF-8' standalone='yes'?>
 <WORKSPACE>
  <FRAME activewindow="0">
-  <PLACEMENT>2c0000000200000003000000c282ffff0083fffffffffffffffffffff4ffffff170000008204000005030000</PLACEMENT>
+  <PLACEMENT>2c0000000200000003000000c282ffff0083ffffffffffffffffffff3e00000012000000cc04000000030000</PLACEMENT>
   <WINDOW type="default" module="ISIS"/>
  </FRAME>
  <MODULE name="VSMDEBUG">
   <PWI>
-   <POPUP w="800" x="100" flags="00000002" y="129" h="200" pid="0" iid="-1">
+   <POPUP w="800" x="100" flags="00000003" y="129" h="200" pid="0" iid="-1">
     <PROPERTIES>
      <ITEM name="Message Column Width">663</ITEM>
      <ITEM name="ShowGrid">No</ITEM>
@@ -130,9 +130,11 @@
      <ITEM name="TopLineAddress">00000000</ITEM>
     </PROPERTIES>
    </POPUP>
-   <POPUP w="600" x="480" flags="0000002b" y="42" h="400" pid="1" iid="1">
+   <POPUP w="600" x="641" flags="0000002b" y="88" h="400" pid="1" iid="1">
     <PROPERTIES>
-     <ITEM name="Breakpoint 0">"",05AA,0000,AA0B,DE09,-1
+     <ITEM name="Breakpoint 0">"",0183,0000,80EC,DE09,1
+</ITEM>
+     <ITEM name="Breakpoint 1">"",02A5,0000,79A0,DE09,-1
 </ITEM>
      <ITEM name="CaseSensitive">No</ITEM>
      <ITEM name="DISPADDRS">Yes</ITEM>
@@ -140,10 +142,10 @@
      <ITEM name="DISPOPCODES">Yes</ITEM>
      <ITEM name="FIXUPBPTS">Yes</ITEM>
      <ITEM name="WordsOnly">No</ITEM>
-     <ITEM name="nBreakpoints">1</ITEM>
+     <ITEM name="nBreakpoints">0</ITEM>
     </PROPERTIES>
    </POPUP>
-   <POPUP w="433" x="64" flags="0000000b" y="19" h="465" pid="2" iid="1">
+   <POPUP w="433" x="125" flags="0000000b" y="303" h="465" pid="2" iid="1">
     <PROPERTIES>
      <ITEM name="Address Column Width">94</ITEM>
      <ITEM name="AutoResize">No</ITEM>
