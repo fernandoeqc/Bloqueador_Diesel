@@ -21,7 +21,7 @@
 #define ADC_BAT      4 //PIN_C0
 #define POWER_IN     PIN_C1
 #define FIM_CURSO_2  PIN_C2
-#define CARGA_BAT    PIN_C3
+//#define CARGA_BAT    PIN_C3
 #define LED1         PIN_C4
 #define LED2         PIN_C5
 

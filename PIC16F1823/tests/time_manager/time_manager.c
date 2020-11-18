@@ -159,7 +159,6 @@ void checkTimeMessage(struct taskData *tk) {
 
 void checkCommandsUart(struct taskData *tk) {
    
-
    com_uart = getCommand(GET_LAST);
 
    if (com_uart == UART_BLOQ_COMMAND) {
@@ -210,50 +209,44 @@ unsigned char checkMotorPosition () {
 
 struct taskFunc toggleOpenClose (struct taskFunc tk) {
    
+   if (flagsControl.restart){ 
+      flagsControl.restart = FALSE;
+      reset_cpu ();
+   }
+
    if (flagsControl.com_time) {
-         tk.sec = TIME_BEFORE_BLOQ;
-         tk.count_sec = 0;
-         tk.data.command = POSIX_CLOSING;
-      }
-      
-      else if (flagsControl.power) {
-         tk.sec = TIME_BEFORE_BLOQ;
-         tk.count_sec = 0;
-         tk.data.command = POSIX_CLOSING;
-      }
+      tk.sec = TIME_BEFORE_BLOQ;
+      tk.count_sec = 0;
+      tk.data.command = POSIX_CLOSING;
+   }
+   
+   else if (flagsControl.power) {
+      tk.sec = TIME_BEFORE_BLOQ;
+      tk.count_sec = 0;
+      tk.data.command = POSIX_CLOSING;
+   }
 
-      else if (flagsControl.uart) {
-         tk.sec = 0;
-         tk.count_sec = 0;
-         tk.data.command = POSIX_CLOSING;
-      }
+   else if (flagsControl.uart) {
+      tk.sec = 0;
+      tk.count_sec = 0;
+      tk.data.command = POSIX_CLOSING;
+   }
 
-      else if (flagsControl.restart){ 
-         flagsControl.restart = FALSE;
-         
-         eeprom_grava (EP_MOTOR_COMMAND, tk.data.command);
-         delay_ms(50);
-         eeprom_grava (EP_CONTROL_FLAGS, getFlags(flagsControl));
-         delay_ms(50);
-         reset_cpu ();
-      }
-      
+   //desbloqueio
+   else {
+      tk.sec = 0;
+      tk.count_sec = 0;
+      tk.data.command = POSIX_OPENING;
+   }
+   
+   if(tk.data.state == tk.data.command) {
+      tk.data.active = FALSE;
+   }
+   else {
+      tk.data.active = TRUE;
+   }
 
-      //desbloqueio
-      else {
-         tk.sec = 0;
-         tk.count_sec = 0;
-         tk.data.command = POSIX_OPENING;
-      }
-      
-      if(tk.data.state == tk.data.command) {
-         tk.data.active = FALSE;
-      }
-      else {
-         tk.data.active = TRUE;
-      }
-
-      return tk;
+   return tk;
 }
 
 void statusMotor(struct taskFunc *tk) {
@@ -368,14 +361,14 @@ int main (void) {
    //initTasks (); //necessario?
    
    addTask (&uart);
-   addTask (&timeReceive);
+   //addTask (&timeReceive);
    addTask (&powerIn);
    addTask (&contaBloq);
 
-   unsigned int8 i;
-   i = eeprom_le(EP_MOTOR_COMMAND);
+ unsigned int8 i;
+/*   i = eeprom_le(EP_MOTOR_COMMAND);
    if (i != 0xFF) contaBloq.data.command = i;
-
+ */
 //COLOCAR NAS FLAGS
 /*    i = eeprom_le(EP_CONTROL_FLAGS);
    if (i != 0xFF) contaBloq.data.command = i; */
@@ -387,6 +380,7 @@ int main (void) {
    output_low (LED1);
    output_low (LED2);
 
+   printf("\r\nabrindo valvula...\r\n");
    for(i = 0; i < 6; i++) {
       output_toggle(LED1);
       output_toggle(LED2);
@@ -403,7 +397,8 @@ int main (void) {
    enable_interrupts(GLOBAL);                // habilitar interr global
    //----------------------------------------------------------
    
-   
+
+   printf("\nLoop\r\n");
    while (TRUE) {      
       
 
