@@ -2,7 +2,6 @@
 
 static int8 number_task = 0;
 
-
 typedef int1 (*function)(void);
 
 struct taskFunc {
@@ -15,35 +14,7 @@ struct taskFunc {
 controlMotor,
 endMotor;
 
-
 struct taskFunc *taskList[TASK_LENGHT];
-/* 
-void timeManager (struct taskFunc *tmp, function func_time) {
-   int x;
-   struct taskFunc b_tmp;
-   b_tmp = *tmp;
-
-   if (b_tmp.data.count_sec == b_tmp.data.sec) {
-      b_tmp.data.count_sec = 0;
-
-      if (func_time != NULL) {
-         func_time(&b_tmp.data);
-      }
-   }
-   b_tmp.data.count_sec++;
-
-   *tmp = b_tmp;
-} 
-
-
-void initTasks () {
-   unsigned int8 i = 0;
-   
-   for (i = 0; i < TASK_LENGHT; i++) {
-      taskList[i] = NULL;
-   }
-}
-*/
 
 void addTask (struct taskFunc *tk) {
 
@@ -65,17 +36,11 @@ static void runTk (struct taskFunc *tk) {
 }
 
 void runTasks () {
-   unsigned int8 i = 0;
+   unsigned int8 i;
 
-   for (i = 0; i < number_task; i++) {
-      if (taskList[i] == NULL) {
-         return;
+   for (i = 0; i < number_task; i++) {      
+      if (taskList[i]->active != FALSE) {
+         runTk (taskList[i]);
       }
-       
-      if (taskList[i]->active == FALSE) {
-         continue;
-      }
-
-      runTk (taskList[i]);
    }
 }

@@ -7,38 +7,17 @@
 
 #define UART_BLOQ_COMMAND 'B'
 #define UART_DESBLOQ_COMMAND 'D'
-#define UART_RESTART_COMMAND 'R'
-#define QT_COMMANDS 3
+#define QT_COMMANDS 2
 
-#define DEBUG
 
 #include <time_manager.h>
-#include <stddef.h>
 #include <functions.h>
 #include <tasks.h>
 
 
-/* volatile unsigned int8 contaPeriodo = TEMPOCICLOLEDS;
-void piscaLedStatus(struct latx *lat){
-   struct latx latCopy;
-   latCopy = *lat;
-
-   //responsavel por desligar o led no segundo periodo
-   //se led esta ligado, desliga
-   if(bit_test(*latCopy.porta,latCopy.pino))
-   {
-      bit_clear(*latCopy.porta,latCopy.pino);
-      return;
-   }
-   *lat = latCopy;
-}
-
-*/
-
 static unsigned int8 valid_commands[QT_COMMANDS] = {
    UART_BLOQ_COMMAND, 
-   UART_DESBLOQ_COMMAND, 
-   UART_RESTART_COMMAND
+   UART_DESBLOQ_COMMAND
 };
 
 //status do motor
@@ -96,29 +75,7 @@ unsigned int1 verifyFlags (void) {
    else return 0;
 }
 
-
-unsigned int1 turnValve (void) { 
-   
-   if (command_motor == CLOSED) {
-      output_low(MOTOR2);
-      delay_ms(100);
-      output_high(MOTOR1);
-
-      output_high(LED1);
-   }
-
-   else if (command_motor == OPENED) {
-      output_low(MOTOR1);
-      delay_ms(100);
-      output_high(MOTOR2);
-
-      output_low(LED2);
-   }
-
-   controlValve.active = FALSE;
-}
-
-
+/* 
 unsigned int1 isValidCommand (unsigned char command) {
    unsigned int8 i;
 
@@ -129,13 +86,16 @@ unsigned int1 isValidCommand (unsigned char command) {
    }
    return 0;
 }
+ */
 
-
-enum {NEW_DATA, GET_LAST};
+#define NEW_DATA 0
+#define GET_LAST 1
 char getCommand (unsigned int8 get) {
    static unsigned char last_data = 0;
    
-   if (isValidCommand(actual_data)) {
+   if ((actual_data == UART_BLOQ_COMMAND) || 
+      (actual_data == UART_DESBLOQ_COMMAND)) {
+
       last_data = actual_data;
 
       switch (get) {
@@ -193,11 +153,6 @@ int1 checkCommandsUart (void) {
       flagsControl.uart = FALSE;
    }
 
-   else if (cmd == UART_RESTART_COMMAND) {
-      //gravar os dados antes de resetar=======================================
-      reset_cpu();
-   }
-
    return TRUE;
 }
 
@@ -215,6 +170,29 @@ int1 checkPowerIn (void) {
       flagsControl.power = TRUE;
       //output_low(LED2);
    }
+   return TRUE;
+}
+
+
+unsigned int1 turnValve (void) { 
+   
+   if (command_motor == CLOSED) {
+      output_low(MOTOR2);
+      delay_ms(100);
+      output_high(MOTOR1);
+
+      output_high(LED1);
+   }
+
+   else if (command_motor == OPENED) {
+      output_low(MOTOR1);
+      delay_ms(100);
+      output_high(MOTOR2);
+
+      output_low(LED2);
+   }
+
+   controlValve.active = FALSE;
    return TRUE;
 }
 
@@ -239,39 +217,33 @@ unsigned char checkMotorPosition (void) {
 
 int1 waitEndMotor (void) {
    unsigned int8 position_motor;
-   static unsigned int1 end = FALSE;
+   unsigned int8 has_movement = FALSE;
    
    position_motor = checkMotorPosition();
 
    if(!position_motor) {
       //aguardando inicio
       
-      if (end) {
+      if (has_movement) {
          //fim do ciclo
-         endMotor.active = FALSE;   
+         endMotor.active = FALSE;  
+         status_motor = has_movement;
          return TRUE;
       }
    }
 
-   else if (position_motor == POSIX_OPENING) {
-      end = TRUE;
-      //abrindo
-   }
-
-   else if (position_motor == POSIX_CLOSING) {
-      end = TRUE;
-      //fechando
-   }
-
    else {
-      //erro
+      has_movement = position_motor;//abrindo
    }
 
    return FALSE;
 }
 
+//=======================================================================
+//verifica qual flag mudou, ajusta tempo de espera do motor, e ativa coltrolValve
+//ativo quando alguma flag muda, entra apenas uma vez 
+//=======================================================================
 int1 statusMotor (void) {
-   static unsigned char actual_status;
 
    //se valvula esta parada
    if (!controlValve.active) {
@@ -310,87 +282,36 @@ int1 statusMotor (void) {
       }    
    }
 
-   return TRUE;
+   controlMotor.active = FALSE;
+   return FALSE;
 }
 
 
 int1 statusFlags (void) {
 
+   //houve mudanca de flags
    if (verifyFlags()) {
       controlMotor.active = TRUE;
    }
 
-   if (controlMotor.flag)
+   //motor iniciou movimento
+   if (controlValve.flag) {
+      controlValve.flag = FALSE;
+      endMotor.active = TRUE;
+   }
+
+   //fim do movimento
+   if (endMotor.flag) {
+      endMotor.flag = FALSE;
+      
+   }
+    return FALSE;
 }
 
-/* 
-void statusMotor(struct taskFunc *tk) {
-   static unsigned int8  count_err_trans = 0;
-   static unsigned int8 flg_transition = 0, position_motor = 0;
+void abc(){}
+void cde (){}
 
-   position_motor = checkMotorPosition();
-   
-   if (
-         ((tk->data.state == OPENED) || (tk->data.state == CLOSED)) && 
-         (verifyFlags(flagsControl))
-      ) {
-      
-   
-      
-   }
-
-   else if (tk->data.state == TRANSITION) {
-
-      if (position_motor == POSIX_PARKED) {
-         if(!flg_transition) {
-            //motor ja está na posição ====== fazer testes
-            //tk->data.state = flg_transition;
-            //tk->data.active = FALSE;
-            //flg_transition = 0;
-         
-            printf("aguardando M |\r\n");
-         }
-         else {
-            //fim da transicao
-            tk->data.state = flg_transition;
-            tk->data.active = FALSE;
-            flg_transition = 0;
-            
-            count_err_trans = 0;
-            printf("M fim _\r\n");
-         }
-      }
-      
-      else if (position_motor == POSIX_OPENING) {
-         //motor esta abrindo
-         flg_transition = position_motor;
-         printf("M abrindo /\r\n");
-      }
-      
-      else if (position_motor == POSIX_CLOSING) {
-         //motor esta fechando
-         flg_transition = position_motor;
-         printf("M fechando \\\r\n");
-      }
-
-      count_err_trans++;
-      if (count_err_trans > MAX_TRANSITION_TIME) {
-         printf("error_max_timeout\r\n");
-         tk->data.state = ERROR;
-         tk->data.state = FALSE;
-      }
-   }
-   
-   else if (tk->data.state == ERROR) {
-      
-   }
-   //se nao entrou em nenhum, erro!
-
-}
- */
-
-int main (void) {
-   
+void main (void) {
    flagsControl.power = FALSE;
    flagsControl.uart = FALSE;
    flagsControl.com_time = FALSE;
@@ -399,8 +320,8 @@ int main (void) {
    controlValve.count_sec = 0x00;
    controlValve.active = FALSE;
    controlValve.flag = FALSE;
-   controlValve.func = openValve;
-   
+   controlValve.func = turnValve;
+  
    endMotor.sec = 0x00;
    endMotor.count_sec = 0x00;
    endMotor.active = FALSE;
@@ -413,32 +334,46 @@ int main (void) {
    controlMotor.flag = FALSE;
    controlMotor.func = statusMotor; 
 
+/*    
+ */
+
    struct taskFunc timeReceive;
    timeReceive.sec = 0x00;
    timeReceive.count_sec = 0x00;
    timeReceive.active = TRUE;
-   controlMotor.flag = FALSE;
-   timeReceive.func = checkTimeMessage;
+   timeReceive.flag = FALSE;
+   timeReceive.func = abc;
+
+   struct taskFunc controlFlag;
+   controlFlag.sec = 0x00;
+   controlFlag.count_sec = 0x00;
+   controlFlag.active = TRUE;
+   controlFlag.flag = FALSE;
+   controlFlag.func = statusFlags; 
 
    struct taskFunc uart;
    uart.sec = 0x00;
    uart.count_sec = 0x00;
    uart.active = TRUE;
-   controlMotor.flag = FALSE;
+   uart.flag = FALSE;
    uart.func = checkCommandsUart; 
 
    struct taskFunc powerIn;
    powerIn.sec = 0x00;
    powerIn.count_sec = 0x00;
    powerIn.active = TRUE;
-   controlMotor.flag = FALSE;
+   powerIn.flag = FALSE;
    powerIn.func = checkPowerIn; 
-   
+/*    
+   */
 
    addTask (&uart);
-   //addTask (&timeReceive);
+   addTask (&timeReceive);
    addTask (&powerIn);
-   addTask (&controlValve);
+   //addTask (&controlValve);
+   //addTask (&endMotor);
+   //addTask (&controlMotor); 
+   //addTask (&controlFlag);
 
   
    //===========REGISTRADORES===================================

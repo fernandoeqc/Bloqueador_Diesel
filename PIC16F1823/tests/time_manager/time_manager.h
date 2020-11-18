@@ -9,11 +9,6 @@
 #use delay(internal=4000000)
 #pragma use rs232(baud=9600,parity=N,xmit=PIN_A0,rcv=PIN_A1,bits=8,stream=PORT1)
 
-#define TIMER0_F
-#define LED1 PIN_A5
-#define LED2 PIN_A4
-#define SAIDA1 PIN_C5 //RL rele
-
 //PORTA
 #define FIM_CURSO_1  PIN_A2
 //#define FIM_CURSO_2  PIN_A3
