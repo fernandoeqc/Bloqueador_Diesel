@@ -17,7 +17,7 @@ struct taskFunc {
    unsigned int8 count_sec;
    struct taskData data;
    function func_time;
-};
+}contaBloq;
 
 
 struct taskFunc *taskList[TASK_LENGHT];

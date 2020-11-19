@@ -1,6 +1,6 @@
 #define TEMPOCICLOLEDS 30
 
-#define MAX_WDT_UART_TIME 5
+#define MAX_TIME_WAITING 10
 #define MAX_TRANSITION_TIME 20
 
 #define TIME_BEFORE_BLOQ 5
@@ -91,9 +91,6 @@ unsigned int1 isValidCommand(unsigned char command) {
 
 void ativaMotor(struct taskData *tk) { 
 
-   //tk->active = FALSE;
-   //tk->flag = TRUE;
-   
    if (tk->command == POSIX_OPENING) {
       tk->state = TRANSITION;
       output_low(MOTOR1);
@@ -148,7 +145,7 @@ void checkTimeMessage(struct taskData *tk) {
       return;
    }
    //se atingiu o tempo maximo sem comunicacao 
-   else if (tk->state >= MAX_WDT_UART_TIME) {
+   else if (tk->state >= MAX_TIME_WAITING) {
       flagsControl.com_time = TRUE;
       return;
    }
@@ -181,16 +178,28 @@ void checkCommandsUart(struct taskData *tk) {
 
 void checkPowerIn(struct taskData *tk) {   
    
+
    if(input(POWER_IN)) {
       flagsControl.power = FALSE;
+      tk->state = 0;
+      return;
       //output_high(LED2);
    }
-   else {
+   else if (tk->state >= MAX_TIME_WAITING){
       flagsControl.power = TRUE;
+      return;
       //output_low(LED2);
    }
+   tk->state++;
 }
 
+void saveStatusEeprom () {
+      eeprom_grava(EP_MOTOR_COMMAND,contaBloq.data.command);
+      delay_ms(100);
+
+      eeprom_grava(EP_CONTROL_FLAGS, getFlags(flagsControl));
+      delay_ms(100);
+}
 
 unsigned char checkMotorPosition () {
    unsigned int8 reading = 0;
@@ -207,46 +216,60 @@ unsigned char checkMotorPosition () {
    return reading;
 }
 
-struct taskFunc toggleOpenClose (struct taskFunc tk) {
+void toggleOpenClose (void) {
    
    if (flagsControl.restart){ 
       flagsControl.restart = FALSE;
+
       reset_cpu ();
    }
 
    if (flagsControl.com_time) {
-      tk.sec = TIME_BEFORE_BLOQ;
-      tk.count_sec = 0;
-      tk.data.command = POSIX_CLOSING;
+      contaBloq.sec = TIME_BEFORE_BLOQ;
+      contaBloq.count_sec = 0;
+      contaBloq.data.command = POSIX_CLOSING;
+
+      #ifdef DEBUG
+         printf("\ntempo s/ comunicacao\r\n");
+      #endif 
    }
    
    else if (flagsControl.power) {
-      tk.sec = TIME_BEFORE_BLOQ;
-      tk.count_sec = 0;
-      tk.data.command = POSIX_CLOSING;
+      contaBloq.sec = TIME_BEFORE_BLOQ;
+      contaBloq.count_sec = 0;
+      contaBloq.data.command = POSIX_CLOSING;
+
+      #ifdef DEBUG
+         printf("\nsem aliment.\r\n");
+      #endif 
    }
 
    else if (flagsControl.uart) {
-      tk.sec = 0;
-      tk.count_sec = 0;
-      tk.data.command = POSIX_CLOSING;
+      contaBloq.sec = 0;
+      contaBloq.count_sec = 0;
+      contaBloq.data.command = POSIX_CLOSING;
+
+      #ifdef DEBUG
+         printf("\ncomando bloq.\r\n");
+      #endif 
    }
 
    //desbloqueio
    else {
-      tk.sec = 0;
-      tk.count_sec = 0;
-      tk.data.command = POSIX_OPENING;
+      contaBloq.sec = 0;
+      contaBloq.count_sec = 0;
+      contaBloq.data.command = POSIX_OPENING;
    }
    
-   if(tk.data.state == tk.data.command) {
-      tk.data.active = FALSE;
+   if(contaBloq.data.state == contaBloq.data.command) {
+      contaBloq.data.active = FALSE;
    }
    else {
-      tk.data.active = TRUE;
+      contaBloq.data.active = TRUE;
+      saveStatusEeprom();
    }
 
-   return tk;
+   //return tk;
 }
 
 void statusMotor(struct taskFunc *tk) {
@@ -260,7 +283,7 @@ void statusMotor(struct taskFunc *tk) {
          (verifyFlags(flagsControl))
       ) {
       
-      *tk = toggleOpenClose(*tk);
+      toggleOpenClose()refatorando structs - retirar sub structs;
       
    }
 
@@ -321,7 +344,6 @@ int main (void) {
    flagsControl.uart = FALSE;
    flagsControl.com_time = FALSE;
 
-   struct taskFunc contaBloq;
    contaBloq.sec = 0x00;
    contaBloq.count_sec = 0x00;
    contaBloq.data.command = POSIX_OPENING;
@@ -361,21 +383,19 @@ int main (void) {
    //initTasks (); //necessario?
    
    addTask (&uart);
-   //addTask (&timeReceive);
+   addTask (&timeReceive);
    addTask (&powerIn);
    addTask (&contaBloq);
 
- unsigned int8 i;
-/*   i = eeprom_le(EP_MOTOR_COMMAND);
+   unsigned int8 i;
+   i = eeprom_le(EP_MOTOR_COMMAND);
    if (i != 0xFF) contaBloq.data.command = i;
- */
-//COLOCAR NAS FLAGS
-/*    i = eeprom_le(EP_CONTROL_FLAGS);
-   if (i != 0xFF) contaBloq.data.command = i; */
-  
-   output_low(MOTOR1);
-   delay_ms(100);
-   output_high(MOTOR2);
+   
+   i = eeprom_le(EP_CONTROL_FLAGS);
+   if (i != 0xFF) flagsControl = i;
+
+   //ativaMotor(&(contaBloq.data));
+   //verifyFlags(flagsControl);
 
    output_low (LED1);
    output_low (LED2);
