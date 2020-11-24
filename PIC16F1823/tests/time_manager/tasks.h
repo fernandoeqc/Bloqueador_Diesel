@@ -2,22 +2,15 @@
 
 static int8 number_task = 0;
 
-struct taskData {
-   unsigned int8 command;
-   unsigned int8 state;
-   unsigned int1 flag:1;
-   unsigned int1 active:1;
-};
 
-typedef void (*function)(struct taskData *arg);
-typedef void (*functionTest)(void);
+typedef void (*function)();
 
 struct taskFunc {
    unsigned int8 sec; 
    unsigned int8 count_sec;
-   struct taskData data;
    function func_time;
-}contaBloq;
+   unsigned int1 active:1;
+}contaBloq, battery, timeReceive, uart, powerIn;
 
 
 struct taskFunc *taskList[TASK_LENGHT];
@@ -35,7 +28,7 @@ static void runTk (struct taskFunc *tk) {
 
    if (tk->count_sec == tk->sec) {
       tk->count_sec = 0;
-      func (&(tk->data));
+      func ();
    }
    else {
       tk->count_sec++;
@@ -47,7 +40,7 @@ void runTasks () {
 
    for (i = 0; i < number_task; i++) {
        
-      if (taskList[i]->data.active == FALSE) {
+      if (taskList[i]->active == FALSE) {
          continue;
       }
 

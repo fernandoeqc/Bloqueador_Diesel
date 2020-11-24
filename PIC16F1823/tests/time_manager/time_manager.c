@@ -1,6 +1,6 @@
 #define TEMPOCICLOLEDS 30
 
-#define MAX_TIME_WAITING 10
+#define MAX_TIME_WAITING 10   /// < 255
 #define MAX_TRANSITION_TIME 20
 
 #define TIME_BEFORE_BLOQ 5
@@ -10,10 +10,12 @@
 #define UART_RESTART_COMMAND 'R'
 #define QT_COMMANDS 3
 
+#define TIME_BATTERY 300
+
 #define DEBUG 
 
 #include <time_manager.h>
-#include <stddef.h>
+//#include <stddef.h>
 #include <functions.h>
 #include <tasks.h>
 
@@ -25,6 +27,8 @@ static unsigned int8 valid_commands[QT_COMMANDS] = {
 
 unsigned char actual_data = '-';
 unsigned char com_uart;
+
+
 
 //status do motor
 #define ERROR 0
@@ -38,6 +42,11 @@ unsigned char com_uart;
 #define POSIX_CLOSING 2
 #define POSIX_ERROR 3
 
+#ifdef DEBUG
+   unsigned char msgs[4] = {'E', 'A', 'F', 'T'};
+#endif
+
+unsigned int8 bloq_state = CLOSED, bloq_command = OPENED;
 
 #pragma INT_RDA
 void RDA_isr(void) {  
@@ -53,8 +62,8 @@ struct flags {
 }flagsControl;
 
 
-unsigned int8 getFlags(struct flags flag) {
-   unsigned int8 flg = flag; //== NAO MEXER, TA FUNCIONANDO ==
+unsigned int8 getFlags() {
+   unsigned int8 flg = flagsControl; //== NAO MEXER, TA FUNCIONANDO ==
    return flg;
 }
 
@@ -62,11 +71,11 @@ unsigned int8 getFlags(struct flags flag) {
 //Retorna 1 se mudou de 0 pra 1+, ou de 1+ pra 0; retorna 0 se nao mudou
 //Sempre vai retornar 1 no inicio do programa
 //=======================================================================
-unsigned int1 verifyFlags (struct flags flag) {
+unsigned int1 verifyFlags () {
    static unsigned int8 last_flag = 0xFF; 
    unsigned int8 flg; 
    
-   flg = getFlags(flag);
+   flg = getFlags();
 
    //se mudou de 0 pra >0, ou de >0 pra 0
    if (last_flag ^ flg) {
@@ -88,8 +97,34 @@ unsigned int1 isValidCommand(unsigned char command) {
    return 0;
 }
 
+#pragma byte MCU_LATA = 0x10C
+#pragma bit    M1_LATA = MCU_LATA.4
+#pragma bit    M2_LATA = MCU_LATA.5
 
-void ativaMotor(struct taskData *tk) { 
+void ativaMotor() { 
+
+   if (bloq_command == POSIX_CLOSING) {
+      output_low (MOTOR2);
+      delay_ms(500);
+      output_high (MOTOR1);
+      delay_ms(500);
+
+      output_high(LED2);
+   }
+
+   //ABRE
+   else {
+      output_low (MOTOR1);
+      delay_ms(500);
+      output_high (MOTOR2);
+      delay_ms(500);
+
+      output_low(LED2);
+   }
+   bloq_state = TRANSITION;
+} 
+
+/* void ativaMotor(struct taskData *tk) { 
 
    if (tk->command == POSIX_OPENING) {
       tk->state = TRANSITION;
@@ -108,7 +143,7 @@ void ativaMotor(struct taskData *tk) {
 
       output_high(LED1);
    }
-}
+}  */
 
 
 enum {NEW_DATA, GET_LAST};
@@ -134,71 +169,94 @@ char getCommand(unsigned int8 get) {
 }
 
 
-void checkTimeMessage(struct taskData *tk) {
+void checkTimeMessage() {
+   static unsigned char receive = 0;
+   static unsigned int8 state = 0;
 
-   tk->command = getCommand(NEW_DATA);
+   receive = getCommand(NEW_DATA);
    
    //se recebeu um comando valido
-   if (tk->command) {
-      tk->state = 0;
+   if (receive) {
+      state = 0;
       flagsControl.com_time = FALSE;
       return;
    }
    //se atingiu o tempo maximo sem comunicacao 
-   else if (tk->state >= MAX_TIME_WAITING) {
+   else if (state >= MAX_TIME_WAITING) {
       flagsControl.com_time = TRUE;
       return;
    }
    //conta sem comunicacao
-   tk->state++;
+   state++;
 }
 
 
-void checkCommandsUart(struct taskData *tk) {
+void checkCommandsUart() {
    
    com_uart = getCommand(GET_LAST);
 
    if (com_uart == UART_BLOQ_COMMAND) {
       flagsControl.uart = TRUE;
       //bit_set (com, 2);
-      tk->command == com_uart;
+      //uart.command == com_uart;
    }
 
    else if (com_uart == UART_DESBLOQ_COMMAND) {
       flagsControl.uart = FALSE;
       //bit_clear (com, 2);
-      tk->command == com_uart;
+      //uart.command == com_uart;
    }
 
    else if (com_uart == UART_RESTART_COMMAND) {
-      flagsControl.restart = TRUE;
+      //flagsControl.restart = TRUE;
    }
 }
 
 
-void checkPowerIn(struct taskData *tk) {   
-   
-
+void checkPowerIn() {   
+   static unsigned int8 count_state = 0;
    if(input(POWER_IN)) {
       flagsControl.power = FALSE;
-      tk->state = 0;
+      count_state = 0;
       return;
       //output_high(LED2);
    }
-   else if (tk->state >= MAX_TIME_WAITING){
+   else if (count_state >= MAX_TIME_WAITING){
       flagsControl.power = TRUE;
       return;
       //output_low(LED2);
    }
-   tk->state++;
+   count_state++;
 }
 
-void saveStatusEeprom () {
-      eeprom_grava(EP_MOTOR_COMMAND,contaBloq.data.command);
+
+void saveStatusEeprom (void) {
+      eeprom_grava(EP_MOTOR_COMMAND,bloq_command);
       delay_ms(100);
 
-      eeprom_grava(EP_CONTROL_FLAGS, getFlags(flagsControl));
+      eeprom_grava(EP_CONTROL_FLAGS, getFlags());
       delay_ms(100);
+}
+
+//POR ALGUM MOTIVO OBSCURO
+//A VAR time_to_charge precisa ser global,
+//senao ao e reconhecida pelo proteus
+static unsigned int16 time_to_charge = 0;
+void chargeBat (void) 
+{ 
+
+   if (time_to_charge < TIME_BATTERY)
+   {
+      output_high (CARGA_BAT);  
+      time_to_charge++;
+   } 
+   else
+   {
+      output_low (CARGA_BAT);
+      
+      time_to_charge = 0;
+      battery.active = FALSE;
+   }
 }
 
 unsigned char checkMotorPosition () {
@@ -227,7 +285,7 @@ void toggleOpenClose (void) {
    if (flagsControl.com_time) {
       contaBloq.sec = TIME_BEFORE_BLOQ;
       contaBloq.count_sec = 0;
-      contaBloq.data.command = POSIX_CLOSING;
+      bloq_command = POSIX_CLOSING;
 
       #ifdef DEBUG
          printf("\ntempo s/ comunicacao\r\n");
@@ -237,7 +295,7 @@ void toggleOpenClose (void) {
    else if (flagsControl.power) {
       contaBloq.sec = TIME_BEFORE_BLOQ;
       contaBloq.count_sec = 0;
-      contaBloq.data.command = POSIX_CLOSING;
+      bloq_command = POSIX_CLOSING;
 
       #ifdef DEBUG
          printf("\nsem aliment.\r\n");
@@ -247,7 +305,7 @@ void toggleOpenClose (void) {
    else if (flagsControl.uart) {
       contaBloq.sec = 0;
       contaBloq.count_sec = 0;
-      contaBloq.data.command = POSIX_CLOSING;
+      bloq_command = POSIX_CLOSING;
 
       #ifdef DEBUG
          printf("\ncomando bloq.\r\n");
@@ -258,83 +316,108 @@ void toggleOpenClose (void) {
    else {
       contaBloq.sec = 0;
       contaBloq.count_sec = 0;
-      contaBloq.data.command = POSIX_OPENING;
+      bloq_command = POSIX_OPENING;
+
+      #ifdef DEBUG
+         printf("\ncomando desbloq.\r\n");
+      #endif 
    }
    
-   if(contaBloq.data.state == contaBloq.data.command) {
-      contaBloq.data.active = FALSE;
+   if(bloq_state == bloq_command) {
+      contaBloq.active = FALSE;
    }
    else {
-      contaBloq.data.active = TRUE;
-      saveStatusEeprom();
+      contaBloq.active = TRUE;
    }
 
    //return tk;
 }
 
-void statusMotor(struct taskFunc *tk) {
+
+void statusMotor (void) {
    static unsigned int8  count_err_trans = 0;
    static unsigned int8 flg_transition = 0, position_motor = 0;
 
    position_motor = checkMotorPosition();
    
    if (
-         ((tk->data.state == OPENED) || (tk->data.state == CLOSED)) && 
-         (verifyFlags(flagsControl))
+         ((bloq_state == OPENED) || (bloq_state == CLOSED)) && 
+         (verifyFlags())
       ) {
       
-      toggleOpenClose()refatorando structs - retirar sub structs;
+      toggleOpenClose();
       
    }
 
-   else if (tk->data.state == TRANSITION) {
+   else if (bloq_state == TRANSITION) {
 
       if (position_motor == POSIX_PARKED) {
          if(!flg_transition) {
             //motor ja está na posição ====== fazer testes
-            //tk->data.state = flg_transition;
-            //tk->data.active = FALSE;
-            //flg_transition = 0;
-         
-            printf("aguardando M |\r\n");
+            bloq_state = bloq_command;
+            contaBloq.active = FALSE;
+            flg_transition = 0;
+
+            #ifdef DEBUG
+               printf("<<<M ja esta na posicao>>> |\r\n");
+            #endif
          }
          else {
             //fim da transicao
-            tk->data.state = flg_transition;
-            tk->data.active = FALSE;
+            bloq_state = flg_transition;
+            contaBloq.active = FALSE;
             flg_transition = 0;
             
+            battery.active = TRUE;
             count_err_trans = 0;
-            printf("M fim _\r\n");
+            
+            saveStatusEeprom();
+
+            #ifdef DEBUG
+               printf("M fim _\r\n");
+            #endif
          }
       }
       
-      else if (position_motor == POSIX_OPENING) {
+      else if ((position_motor == bloq_command)) {
          //motor esta abrindo
          flg_transition = position_motor;
-         printf("M abrindo /\r\n");
+         contaBloq.active = FALSE;
+
+         #ifdef DEBUG
+            printf("M comando: %c\r\n", msgs[position_motor]);
+         #endif
+      }
+
+      else {
+         #ifdef DEBUG
+            printf("<<<ERRO! M : %c>>>", msgs[position_motor]);
+         #endif
       }
       
-      else if (position_motor == POSIX_CLOSING) {
+      /* else if (position_motor == POSIX_CLOSING) {
          //motor esta fechando
          flg_transition = position_motor;
-         printf("M fechando \\\r\n");
-      }
+         
+         #ifdef DEBUG
+            printf("M fechando \\\r\n");
+         #endif
+      } */
 
       count_err_trans++;
       if (count_err_trans > MAX_TRANSITION_TIME) {
-         printf("error_max_timeout\r\n");
+         
+         #ifdef DEBUG
+            printf("error_max_timeout\r\n");
+         #endif
          reset_cpu();
-         //tk->data.state = ERROR;
-         //tk->data.state = FALSE;
       }
    }
    
-   else if (tk->data.state == ERROR) {
+   else if (bloq_state == ERROR) {
       
    }
    //se nao entrou em nenhum, erro!
-
 }
 
 
@@ -346,61 +429,57 @@ int main (void) {
 
    contaBloq.sec = 0x00;
    contaBloq.count_sec = 0x00;
-   contaBloq.data.command = POSIX_OPENING;
-   contaBloq.data.state = OPENED;
-   contaBloq.data.flag = FALSE;
-   contaBloq.data.active = FALSE;
+   contaBloq.active = FALSE;
    contaBloq.func_time = ativaMotor;
 
-   struct taskFunc timeReceive;
    timeReceive.sec = 0x00;
    timeReceive.count_sec = 0x00;
-   timeReceive.data.command = 't';
-   timeReceive.data.state = 0;
-   timeReceive.data.flag = FALSE;
-   timeReceive.data.active = TRUE;
+   timeReceive.active = TRUE;
    timeReceive.func_time = checkTimeMessage;
 
-   struct taskFunc uart;
+   
    uart.sec = 0x00;
    uart.count_sec = 0x00;
-   uart.data.command = '0';
-   uart.data.command = '0';
-   uart.data.flag = FALSE;
-   uart.data.active = TRUE;
+   uart.active = TRUE;
    uart.func_time = checkCommandsUart; 
 
 
-   struct taskFunc powerIn;
    powerIn.sec = 0x00;
    powerIn.count_sec = 0x00;
-   powerIn.data.command = 't';
-   powerIn.data.state = 'X';
-   powerIn.data.flag = FALSE;
-   powerIn.data.active = TRUE;
+   powerIn.active = TRUE;
    powerIn.func_time = checkPowerIn; 
    
-   //initTasks (); //necessario?
+   battery.sec = 0x00;
+   battery.count_sec = 0x00;
+   battery.active = TRUE;
+   battery.func_time = chargeBat; 
    
-   addTask (&uart);
-   addTask (&timeReceive);
-   addTask (&powerIn);
-   addTask (&contaBloq);
 
+   addTask (&uart);
+   //addTask (&timeReceive);
+   //addTask (&powerIn);
+   addTask (&contaBloq);
+   addTask (&battery);
+ 
    unsigned int8 i;
    i = eeprom_le(EP_MOTOR_COMMAND);
-   if (i != 0xFF) contaBloq.data.command = i;
+   if (i != 0xFF) bloq_state = i;
    
    i = eeprom_le(EP_CONTROL_FLAGS);
    if (i != 0xFF) flagsControl = i;
 
-   //ativaMotor(&(contaBloq.data));
+   //ativaMotor(&(contaBloq));
+
+   //ativaMotor(&(contaBloq));
    //verifyFlags(flagsControl);
 
    output_low (LED1);
    output_low (LED2);
 
-   printf("\r\nabrindo valvula...\r\n");
+   #ifdef DEBUG
+      printf("\r\n...INICIO...\r\n");
+   #endif
+   
    for(i = 0; i < 6; i++) {
       output_toggle(LED1);
       output_toggle(LED2);
@@ -417,22 +496,26 @@ int main (void) {
    enable_interrupts(GLOBAL);                // habilitar interr global
    //----------------------------------------------------------
    
+   #ifdef DEBUG
+      printf("\nLoop\r\n");
+   #endif
 
-   printf("\nLoop\r\n");
    while (TRUE) {      
       
 
       if(um_segundo) {
          um_segundo = 0b0;
+         
+         #ifdef DEBUG
          printf("flags: %u%u%u\r\n", flagsControl.power, 
                                     flagsControl.uart, 
                                     flagsControl.com_time);
-         statusMotor(&contaBloq);
-         runTasks();
-         
- 
-         
-         output_toggle(LED1);
+
+         #endif
+
+         statusMotor();
+         runTasks();         
       }
+         
    }
 }
