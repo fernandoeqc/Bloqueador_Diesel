@@ -1,32 +1,26 @@
 #include <testes_mecanico.h>
 
-#USE RS232 (baud=9600, parity=N, xmit=PIN_A0, rcv=PIN_A1, bits=8, stream=COM_A)
-#USE RS232 (baud=9600, parity=N, xmit=PIN_C4, rcv=PIN_C5, bits=8, stream=COM_B)
+#define LED_B 0x1E
+#define LED_D 0x1D
+#define LED_R
+#define LED_0
 
-char uart1 = 0, uart2 = 0;
+#byte MCU_LATC = 0x10E
 
-#INT_RDA
-void  RDA_isr(void) 
-{
-   
+void output_leds (unsigned int8 bin) {
+   output_bit(PIN_A2, bit_test(bin,0)); 
+   output_bit(PIN_C0, bit_test(bin,1)); 
+   output_bit(PIN_C1, bit_test(bin,2)); 
+   output_bit(PIN_C2, bit_test(bin,3)); 
+   output_bit(PIN_C3, bit_test(bin,4)); 
 }
 
-
-
 void main(void) {
-   char c;
-   
-   enable_interrupts(INT_RDA);
-   enable_interrupts(GLOBAL);
-   
-   printf(COM_A, "Online\n\r");
-   printf(COM_B, "Online\n\r");
-   
+   unsigned int8 x = 0;
    while(TRUE) {
-      uart1 = getc(COM_A);  
-      uart2 = getc(COM_B);
-   
-      putc(uart2, COM_A);
-      putc(uart1, COM_B);
+      output_leds(x);
+      x++;
+      delay_ms(500);
+      output_toggle(PIN_A0);
    }
 }

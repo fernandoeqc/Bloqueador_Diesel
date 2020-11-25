@@ -1,16 +1,32 @@
 #define TEMPOCICLOLEDS 30
 
-#define MAX_TIME_WAITING 10   /// < 255
-#define MAX_TRANSITION_TIME 20
+//valor de seguranca para tempo sem comunicacao uart
+//antes de ativar respectiva flag:
+#define MAX_TIME_WAITING_UART 30   /// valor max: 255
 
-#define TIME_BEFORE_BLOQ 5
+//valor de seguranca para tempo sem alimentacao
+//antes de ativar respectiva flag:
+#define MAX_TIME_WAITING_POWER 10   /// valor max: 255
+
+//tempo de delay do motor antes da transicao
+#define TIME_BEFORE_BLOQ 30
+
+//tempo de bateria carregando
+#define TIME_BATTERY 3600
+
+#if TIME_BEFORE_BLOQ + MAX_TIME_WAITING_POWER > 60
+   #error tempo deve levar em conta descarga da bateria.
+#endif
+
+//tempo maximo em transicao do motor: refator - verificar condicoes
+#define MAX_TRANSITION_TIME 20 ///valor max: 255
+
 
 #define UART_BLOQ_COMMAND 'B'
 #define UART_DESBLOQ_COMMAND 'D'
 #define UART_RESTART_COMMAND 'R'
 #define QT_COMMANDS 3
 
-#define TIME_BATTERY 300
 
 #define DEBUG 
 
@@ -182,7 +198,7 @@ void checkTimeMessage() {
       return;
    }
    //se atingiu o tempo maximo sem comunicacao 
-   else if (state >= MAX_TIME_WAITING) {
+   else if (state >= MAX_TIME_WAITING_UART) {
       flagsControl.com_time = TRUE;
       return;
    }
@@ -221,7 +237,7 @@ void checkPowerIn() {
       return;
       //output_high(LED2);
    }
-   else if (count_state >= MAX_TIME_WAITING){
+   else if (count_state >= MAX_TIME_WAITING_POWER){
       flagsControl.power = TRUE;
       return;
       //output_low(LED2);
@@ -457,7 +473,7 @@ int main (void) {
 
    addTask (&uart);
    //addTask (&timeReceive);
-   //addTask (&powerIn);
+   addTask (&powerIn);
    addTask (&contaBloq);
    addTask (&battery);
  
@@ -514,7 +530,8 @@ int main (void) {
          #endif
 
          statusMotor();
-         runTasks();         
+         runTasks(); 
+         output_toggle(LED1);        
       }
          
    }
