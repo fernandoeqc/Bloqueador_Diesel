@@ -1,4 +1,4 @@
-#define TASK_LENGHT 4
+#define TASK_LENGHT 5
 
 static int8 number_task = 0;
 

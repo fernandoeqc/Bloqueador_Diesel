@@ -2,14 +2,14 @@
 
 //valor de seguranca para tempo sem comunicacao uart
 //antes de ativar respectiva flag:
-#define MAX_TIME_WAITING_UART 30   /// valor max: 255
+#define MAX_TIME_WAITING_UART 5//30   /// valor max: 255
 
 //valor de seguranca para tempo sem alimentacao
 //antes de ativar respectiva flag:
-#define MAX_TIME_WAITING_POWER 10   /// valor max: 255
+#define MAX_TIME_WAITING_POWER 5//10   /// valor max: 255
 
 //tempo de delay do motor antes da transicao
-#define TIME_BEFORE_BLOQ 30
+#define TIME_BEFORE_BLOQ 5//30
 
 //tempo de bateria carregando
 #define TIME_BATTERY 3600
@@ -35,13 +35,13 @@
 #include <functions.h>
 #include <tasks.h>
 
-static unsigned int8 valid_commands[QT_COMMANDS] = {
+unsigned int8 valid_commands[QT_COMMANDS] = {
    UART_BLOQ_COMMAND, 
    UART_DESBLOQ_COMMAND, 
    UART_RESTART_COMMAND
 };
 
-unsigned char actual_data = '-';
+char actual_data = '-';
 unsigned char com_uart;
 
 
@@ -64,9 +64,13 @@ unsigned char com_uart;
 
 unsigned int8 bloq_state = CLOSED, bloq_command = OPENED;
 
-#pragma INT_RDA
+#INT_RDA
 void RDA_isr(void) {  
-   actual_data = getch();
+    
+   if(kbhit()) {
+      actual_data = getc(); 
+      clear_interrupt(INT_RDA);
+   }
 }
 
 
@@ -87,8 +91,8 @@ unsigned int8 getFlags() {
 //Retorna 1 se mudou de 0 pra 1+, ou de 1+ pra 0; retorna 0 se nao mudou
 //Sempre vai retornar 1 no inicio do programa
 //=======================================================================
+unsigned int8 last_flag = 0xFF; 
 unsigned int1 verifyFlags () {
-   static unsigned int8 last_flag = 0xFF; 
    unsigned int8 flg; 
    
    flg = getFlags();
@@ -163,8 +167,8 @@ void ativaMotor() {
 
 
 enum {NEW_DATA, GET_LAST};
+unsigned char last_data = 0;
 char getCommand(unsigned int8 get) {
-   static unsigned char last_data = 0;
    
    if (isValidCommand(actual_data)) {
       last_data = actual_data;
@@ -185,9 +189,10 @@ char getCommand(unsigned int8 get) {
 }
 
 
+unsigned char receive = 0;
+unsigned int8 state = 0;
+unsigned int8 count_state = 0;
 void checkTimeMessage() {
-   static unsigned char receive = 0;
-   static unsigned int8 state = 0;
 
    receive = getCommand(NEW_DATA);
    
@@ -229,8 +234,8 @@ void checkCommandsUart() {
 }
 
 
+
 void checkPowerIn() {   
-   static unsigned int8 count_state = 0;
    if(input(POWER_IN)) {
       flagsControl.power = FALSE;
       count_state = 0;
@@ -257,7 +262,7 @@ void saveStatusEeprom (void) {
 //POR ALGUM MOTIVO OBSCURO
 //A VAR time_to_charge precisa ser global,
 //senao ao e reconhecida pelo proteus
-static unsigned int16 time_to_charge = 0;
+unsigned int16 time_to_charge = 0;
 void chargeBat (void) 
 { 
 
@@ -304,7 +309,7 @@ void toggleOpenClose (void) {
       bloq_command = POSIX_CLOSING;
 
       #ifdef DEBUG
-         printf("\ntempo s/ comunicacao\r\n");
+         printf("\ntempo s/ comunicacao\n");
       #endif 
    }
    
@@ -314,7 +319,7 @@ void toggleOpenClose (void) {
       bloq_command = POSIX_CLOSING;
 
       #ifdef DEBUG
-         printf("\nsem aliment.\r\n");
+         printf("\nsem aliment.\n");
       #endif 
    }
 
@@ -324,7 +329,7 @@ void toggleOpenClose (void) {
       bloq_command = POSIX_CLOSING;
 
       #ifdef DEBUG
-         printf("\ncomando bloq.\r\n");
+         printf("\ncomando bloq.\n");
       #endif 
    }
 
@@ -335,7 +340,7 @@ void toggleOpenClose (void) {
       bloq_command = POSIX_OPENING;
 
       #ifdef DEBUG
-         printf("\ncomando desbloq.\r\n");
+         printf("\ncomando desbloq.\n");
       #endif 
    }
    
@@ -350,9 +355,9 @@ void toggleOpenClose (void) {
 }
 
 
+unsigned int8  count_err_trans = 0;
+unsigned int8 flg_transition = 0, position_motor = 0;
 void statusMotor (void) {
-   static unsigned int8  count_err_trans = 0;
-   static unsigned int8 flg_transition = 0, position_motor = 0;
 
    position_motor = checkMotorPosition();
    
@@ -375,7 +380,7 @@ void statusMotor (void) {
             flg_transition = 0;
 
             #ifdef DEBUG
-               printf("<<<M ja esta na posicao>>> |\r\n");
+               printf("<<<M ja esta na posicao>>> |\n");
             #endif
          }
          else {
@@ -390,7 +395,7 @@ void statusMotor (void) {
             saveStatusEeprom();
 
             #ifdef DEBUG
-               printf("M fim _\r\n");
+               printf("M fim _\n");
             #endif
          }
       }
@@ -438,7 +443,25 @@ void statusMotor (void) {
 
 
 int main (void) {
-   
+
+
+   setup_comparator(NC_NC_NC_NC);
+   disable_interrupts(PERIPH);
+
+   //selecao dos pinos rx e tx a0 / a1
+   TXSEL = 1;
+   RXSEL = 1;
+
+   //===========REGISTRADORES===================================
+   disable_interrupts(GLOBAL);               // habilitar interr global
+   enable_interrupts(INT_RDA);               //UART
+   setup_timer_1(T1_INTERNAL | T1_DIV_BY_8); // setar timer1 para interno
+   enable_interrupts(INT_TIMER1);            // habilita Timer1
+   set_timer1(0);                            // limpar flag TMR1H & TMR1L
+   counter = int_per_sec;
+   enable_interrupts(GLOBAL);                // habilitar interr global
+   //----------------------------------------------------------
+
    flagsControl.power = FALSE;
    flagsControl.uart = FALSE;
    flagsControl.com_time = FALSE;
@@ -453,7 +476,6 @@ int main (void) {
    timeReceive.active = TRUE;
    timeReceive.func_time = checkTimeMessage;
 
-   
    uart.sec = 0x00;
    uart.count_sec = 0x00;
    uart.active = TRUE;
@@ -471,15 +493,15 @@ int main (void) {
    battery.func_time = chargeBat; 
    
 
-   addTask (&uart);
+   //addTask (&uart);
    //addTask (&timeReceive);
    addTask (&powerIn);
+   //addTask (&battery);
    addTask (&contaBloq);
-   addTask (&battery);
  
    unsigned int8 i;
    i = eeprom_le(EP_MOTOR_COMMAND);
-   if (i != 0xFF) bloq_state = i;
+   //if (i != 0xFF) bloq_state = i;
    
    i = eeprom_le(EP_CONTROL_FLAGS);
    if (i != 0xFF) flagsControl = i;
@@ -502,19 +524,11 @@ int main (void) {
       delay_ms(150);
    }
    
-   //===========REGISTRADORES===================================
-   disable_interrupts(GLOBAL);               // habilitar interr global
-   enable_interrupts(INT_RDA);               //UART
-   setup_timer_1(T1_INTERNAL | T1_DIV_BY_8); // setar timer1 para interno
-   enable_interrupts(INT_TIMER1);            // habilita Timer1
-   set_timer1(0);                            // limpar flag TMR1H & TMR1L
-   counter = int_per_sec;
-   enable_interrupts(GLOBAL);                // habilitar interr global
-   //----------------------------------------------------------
    
    #ifdef DEBUG
       printf("\nLoop\r\n");
    #endif
+
 
    while (TRUE) {      
       
@@ -523,15 +537,18 @@ int main (void) {
          um_segundo = 0b0;
          
          #ifdef DEBUG
-         printf("flags: %u%u%u\r\n", flagsControl.power, 
+         printf("flags: %u%u%u, ", flagsControl.power, 
                                     flagsControl.uart, 
                                     flagsControl.com_time);
+         
+         printf("cmd %c;\r\n", actual_data);
 
          #endif
 
          statusMotor();
          runTasks(); 
-         output_toggle(LED1);        
+
+         output_toggle(LED1);   
       }
          
    }
