@@ -64,7 +64,7 @@ unsigned char com_uart;
 
 unsigned int8 bloq_state = CLOSED, bloq_command = OPENED;
 
-#INT_RDA
+/* #INT_RDA
 void RDA_isr(void) {  
     
    if(kbhit()) {
@@ -72,7 +72,13 @@ void RDA_isr(void) {
       clear_interrupt(INT_RDA);
    }
 }
-
+ */
+void readUart (void) {
+   if(kbhit()) {
+      actual_data = getc(); 
+      //clear_interrupt(INT_RDA);
+   }
+}
 
 struct flags {
    int1 power:1; //alimentacao
@@ -252,10 +258,10 @@ void checkPowerIn() {
 
 
 void saveStatusEeprom (void) {
-      eeprom_grava(EP_MOTOR_COMMAND,bloq_command);
+      write_eeprom(0x01,bloq_command);
       delay_ms(100);
 
-      eeprom_grava(EP_CONTROL_FLAGS, getFlags());
+      write_eeprom(0x00, getFlags());
       delay_ms(100);
 }
 
@@ -309,7 +315,7 @@ void toggleOpenClose (void) {
       bloq_command = POSIX_CLOSING;
 
       #ifdef DEBUG
-         printf("\ntempo s/ comunicacao\n");
+         printf("\ntempo s/ comunicacao\r\n");
       #endif 
    }
    
@@ -319,7 +325,7 @@ void toggleOpenClose (void) {
       bloq_command = POSIX_CLOSING;
 
       #ifdef DEBUG
-         printf("\nsem aliment.\n");
+         printf("\nsem aliment.\r\n");
       #endif 
    }
 
@@ -329,7 +335,7 @@ void toggleOpenClose (void) {
       bloq_command = POSIX_CLOSING;
 
       #ifdef DEBUG
-         printf("\ncomando bloq.\n");
+         printf("\ncomando bloq.\r\n");
       #endif 
    }
 
@@ -340,7 +346,7 @@ void toggleOpenClose (void) {
       bloq_command = POSIX_OPENING;
 
       #ifdef DEBUG
-         printf("\ncomando desbloq.\n");
+         printf("\ncomando desbloq.\r\n");
       #endif 
    }
    
@@ -380,7 +386,7 @@ void statusMotor (void) {
             flg_transition = 0;
 
             #ifdef DEBUG
-               printf("<<<M ja esta na posicao>>> |\n");
+               printf("<<<M ja esta na posicao>>> |\r\n");
             #endif
          }
          else {
@@ -395,9 +401,11 @@ void statusMotor (void) {
             saveStatusEeprom();
 
             #ifdef DEBUG
-               printf("M fim _\n");
+               printf("M fim _\r\n");
             #endif
          }
+
+         return;
       }
       
       else if ((position_motor == bloq_command)) {
@@ -408,37 +416,30 @@ void statusMotor (void) {
          #ifdef DEBUG
             printf("M comando: %c\r\n", msgs[position_motor]);
          #endif
+         return;
+
       }
 
       else {
-         #ifdef DEBUG
-            printf("<<<ERRO! M : %c>>>", msgs[position_motor]);
-         #endif
-      }
-      
-      /* else if (position_motor == POSIX_CLOSING) {
-         //motor esta fechando
-         flg_transition = position_motor;
-         
-         #ifdef DEBUG
-            printf("M fechando \\\r\n");
-         #endif
-      } */
+         count_err_trans++;
+         if (count_err_trans < MAX_TRANSITION_TIME) {
+            #ifdef DEBUG
+               printf("<<<ERRO! M : %c>>>\r\n", msgs[position_motor]);
+            #endif            
+         }
 
-      count_err_trans++;
-      if (count_err_trans > MAX_TRANSITION_TIME) {
-         
-         #ifdef DEBUG
-            printf("error_max_timeout\r\n");
-         #endif
-         reset_cpu();
+         else {
+            #ifdef DEBUG
+               printf("error_max_timeout\r\n");
+            #endif
+            count_err_trans = 0;
+            reset_cpu();
+         }
       }
    }
    
-   else if (bloq_state == ERROR) {
-      
-   }
    //se nao entrou em nenhum, erro!
+   //else if (bloq_state == ERROR) {}
 }
 
 
@@ -454,7 +455,7 @@ int main (void) {
 
    //===========REGISTRADORES===================================
    disable_interrupts(GLOBAL);               // habilitar interr global
-   enable_interrupts(INT_RDA);               //UART
+   //enable_interrupts(INT_RDA);               //UART
    setup_timer_1(T1_INTERNAL | T1_DIV_BY_8); // setar timer1 para interno
    enable_interrupts(INT_TIMER1);            // habilita Timer1
    set_timer1(0);                            // limpar flag TMR1H & TMR1L
@@ -493,17 +494,17 @@ int main (void) {
    battery.func_time = chargeBat; 
    
 
-   //addTask (&uart);
-   //addTask (&timeReceive);
+   addTask (&uart);
+   addTask (&timeReceive);
    addTask (&powerIn);
-   //addTask (&battery);
+   addTask (&battery);
    addTask (&contaBloq);
  
    unsigned int8 i;
-   i = eeprom_le(EP_MOTOR_COMMAND);
+   //i = read_eeprom(0x01);
    //if (i != 0xFF) bloq_state = i;
    
-   i = eeprom_le(EP_CONTROL_FLAGS);
+   i = read_eeprom(0x00);
    if (i != 0xFF) flagsControl = i;
 
    //ativaMotor(&(contaBloq));
@@ -532,6 +533,10 @@ int main (void) {
 
    while (TRUE) {      
       
+      //0.5 seg
+      if (um_periodo) {
+         readUart();
+      }
 
       if(um_segundo) {
          um_segundo = 0b0;
@@ -550,6 +555,5 @@ int main (void) {
 
          output_toggle(LED1);   
       }
-         
    }
 }

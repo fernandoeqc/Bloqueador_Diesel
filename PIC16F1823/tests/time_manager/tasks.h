@@ -36,14 +36,14 @@ static void runTk (struct taskFunc *tk) {
 }
 
 void runTasks () {
-   unsigned int8 i = 0;
+   unsigned int8 task_ct = 0;
 
-   for (i = 0; i < number_task; i++) {
+   for (task_ct = 0; task_ct < number_task; task_ct++) {
        
-      if (taskList[i]->active == FALSE) {
+      if (taskList[task_ct]->active == FALSE) {
          continue;
       }
 
-      runTk (taskList[i]);
+      runTk (taskList[task_ct]);
    }
 }

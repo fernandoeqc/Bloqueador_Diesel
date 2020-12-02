@@ -31,7 +31,7 @@
 #define LED2         PIN_C5
 
 //#define PISCALEDSTATUS_F
-#define EEPROM_F
+//#define EEPROM_F
 #define TIMER0_F
 
 //EEPROM===========================
