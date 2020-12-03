@@ -88,6 +88,13 @@ struct flags {
 }flagsControl;
 
 
+#INT_EXT
+void  EXT_isr(void) {
+   #ifdef DEBUG
+      printf("acordando");
+   #endif 
+}
+
 unsigned int8 getFlags() {
    unsigned int8 flg = flagsControl; //== NAO MEXER, TA FUNCIONANDO ==
    return flg;
@@ -244,6 +251,7 @@ void checkCommandsUart() {
 void checkPowerIn() {   
    if(input(POWER_IN)) {
       flagsControl.power = FALSE;
+      
       count_state = 0;
       return;
       //output_high(LED2);
@@ -266,8 +274,7 @@ void saveStatusEeprom (void) {
 }
 
 //POR ALGUM MOTIVO OBSCURO
-//A VAR time_to_charge precisa ser global,
-//senao ao e reconhecida pelo proteus
+//A variaveis nao podem ser estaticas, precisa ser global,
 unsigned int16 time_to_charge = 0;
 void chargeBat (void) 
 { 
@@ -300,6 +307,7 @@ unsigned char checkMotorPosition () {
    //se os dois estao nivel alto, motor esta com defeito 
    return reading;
 }
+
 
 void toggleOpenClose (void) {
    
@@ -367,13 +375,21 @@ void statusMotor (void) {
 
    position_motor = checkMotorPosition();
    
-   if (
-         ((bloq_state == OPENED) || (bloq_state == CLOSED)) && 
-         (verifyFlags())
-      ) {
-      
-      toggleOpenClose();
-      
+   //se motor está parado
+   if ( (bloq_state == OPENED) || (bloq_state == CLOSED) ) {
+         if (verifyFlags()) {
+            toggleOpenClose();   
+         }
+
+         //se esta sem alimentacao e motor ja esta fechado 
+         else if ( (bloq_state == CLOSED) && (flagsControl.power) ) {
+            #ifdef DEBUG
+               printf("Dormindo\r\n");
+            #endif
+            output_c(0x00);
+            delay_ms(100);
+            sleep();
+         }
    }
 
    else if (bloq_state == TRANSITION) {
@@ -389,6 +405,7 @@ void statusMotor (void) {
                printf("<<<M ja esta na posicao>>> |\r\n");
             #endif
          }
+
          else {
             //fim da transicao
             bloq_state = flg_transition;
@@ -455,6 +472,7 @@ int main (void) {
 
    //===========REGISTRADORES===================================
    disable_interrupts(GLOBAL);               // habilitar interr global
+   enable_interrupts(INT_EXT);
    //enable_interrupts(INT_RDA);               //UART
    setup_timer_1(T1_INTERNAL | T1_DIV_BY_8); // setar timer1 para interno
    enable_interrupts(INT_TIMER1);            // habilita Timer1
@@ -530,9 +548,11 @@ int main (void) {
       printf("\nLoop\r\n");
    #endif
 
+   
 
    while (TRUE) {      
       
+            
       //0.5 seg
       if (um_periodo) {
          readUart();

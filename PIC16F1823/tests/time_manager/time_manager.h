@@ -2,10 +2,11 @@
 #device ADC=8
 
 #FUSES NOWDT                    //No Watch Dog Timer
-#FUSES NOMCLR                   //Master Clear pin used for I/O
-#FUSES NOBROWNOUT               //No brownout reset
+#FUSES MCLR                     //Master Clear pin used for I/O
+#FUSES BROWNOUT                 //No brownout reset
 #FUSES NOLVP                    //No low voltage prgming, B3(PIC16) or B5(PIC18) used for I/O
 #FUSES BORV25                   //Brownout reset at 2.5V
+#FUSES PUT                      //power up timer enable
 
 #use delay(internal=4000000)
 #use rs232(baud=9600, uart1, ERRORS)
@@ -15,17 +16,17 @@
 #bit RXSEL = APFCON.7
 
 
-//PORTA
-#define FIM_CURSO_1  PIN_A2
+//PORTA - TODOS ENTRADAS
+#define POWER_IN     PIN_A2
 //#define FIM_CURSO_2  PIN_A3
-#define MOTOR1       PIN_A4
-#define MOTOR2       PIN_A5
+#define FIM_CURSO_1  PIN_A4
+#define FIM_CURSO_2  PIN_A5
 
 
-//PORTC
-#define ADC_BAT      4 //PIN_C0
-#define POWER_IN     PIN_C1
-#define FIM_CURSO_2  PIN_C2
+//PORTC - TODOS SAIDAS
+//#define ADC_BAT      4 //PIN_C0
+#define MOTOR1       PIN_C1
+#define MOTOR2       PIN_C2
 #define CARGA_BAT    PIN_C3
 #define LED1         PIN_C4
 #define LED2         PIN_C5
