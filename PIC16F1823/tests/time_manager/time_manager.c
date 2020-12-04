@@ -92,6 +92,8 @@ struct flags {
 void  EXT_isr(void) {
    #ifdef DEBUG
       printf("acordando");
+      disable_interrupts(INT_EXT);
+      reset_cpu();
    #endif 
 }
 
@@ -387,6 +389,8 @@ void statusMotor (void) {
                printf("Dormindo\r\n");
             #endif
             output_c(0x00);
+            clear_interrupt(INT_EXT);
+            enable_interrupts(INT_EXT);
             delay_ms(100);
             sleep();
          }
@@ -472,7 +476,7 @@ int main (void) {
 
    //===========REGISTRADORES===================================
    disable_interrupts(GLOBAL);               // habilitar interr global
-   enable_interrupts(INT_EXT);
+   
    //enable_interrupts(INT_RDA);               //UART
    setup_timer_1(T1_INTERNAL | T1_DIV_BY_8); // setar timer1 para interno
    enable_interrupts(INT_TIMER1);            // habilita Timer1
