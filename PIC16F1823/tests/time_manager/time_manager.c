@@ -159,27 +159,6 @@ void ativaMotor() {
    bloq_state = TRANSITION;
 } 
 
-/* void ativaMotor(struct taskData *tk) { 
-
-   if (tk->command == POSIX_OPENING) {
-      tk->state = TRANSITION;
-      output_low(MOTOR1);
-      delay_ms(100);
-      output_high(MOTOR2);
-
-      output_low(LED2);
-   }
-
-   else if (tk->command == POSIX_CLOSING) {
-      tk->state = TRANSITION;
-      output_low(MOTOR2);
-      delay_ms(100);
-      output_high(MOTOR1);
-
-      output_high(LED1);
-   }
-}  */
-
 
 enum {NEW_DATA, GET_LAST};
 unsigned char last_data = 0;
@@ -249,7 +228,6 @@ void checkCommandsUart() {
 }
 
 
-
 void checkPowerIn() {   
    if(input(POWER_IN)) {
       flagsControl.power = FALSE;
@@ -275,8 +253,9 @@ void saveStatusEeprom (void) {
       delay_ms(100);
 }
 
+
 //POR ALGUM MOTIVO OBSCURO
-//A variaveis nao podem ser estaticas, precisa ser global,
+//A variaveis nao podem ser estaticas, precisam ser global,
 unsigned int16 time_to_charge = 0;
 void chargeBat (void) 
 { 
@@ -294,6 +273,7 @@ void chargeBat (void)
       battery.active = FALSE;
    }
 }
+
 
 unsigned char checkMotorPosition () {
    unsigned int8 reading = 0;
