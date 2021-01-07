@@ -2,17 +2,17 @@
 
 //valor de seguranca para tempo sem comunicacao uart
 //antes de ativar respectiva flag:
-#define MAX_TIME_WAITING_UART 5//30   /// valor max: 255
+#define MAX_TIME_WAITING_UART 30//30   /// valor max: 255
 
 //valor de seguranca para tempo sem alimentacao
 //antes de ativar respectiva flag:
-#define MAX_TIME_WAITING_POWER 5//10   /// valor max: 255
+#define MAX_TIME_WAITING_POWER 10//10   /// valor max: 255
 
 //tempo de delay do motor antes da transicao
 #define TIME_BEFORE_BLOQ 5//30
 
 //tempo de bateria carregando
-#define TIME_BATTERY 3600
+#define TIME_BATTERY 300 // 5MIN
 
 #if TIME_BEFORE_BLOQ + MAX_TIME_WAITING_POWER > 60
    #error tempo deve levar em conta descarga da bateria.
